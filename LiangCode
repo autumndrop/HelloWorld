@@ -1,0 +1,109 @@
+#generate data
+#consider two variables for the departure time choice, time and reliability, both variables are functions of time of day. 
+#Haven't consider time-constant covariates yet
+
+#Function defining travel time function, use Quintic formula
+defineTimeFunction <- function(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17){
+    fTime <- function(x){
+#        a*x^4+b*x^3+c*x^2+d*x+e
+        a1+a2*exp(sin(x*2*pi/24))+a3*exp((sin(x*2*pi/24)))^2+a4*exp((sin(x*2*pi/24)))^3+a5*exp((sin(x*2*pi/24)))^4
+        + a6*exp(cos(x*2*pi/24))+a7*exp((cos(x*2*pi/24)))^2+a8*exp((cos(x*2*pi/24)))^3+a9*exp((cos(x*2*pi/24)))^4
+        +a10*exp(sin(x*4*pi/24))+a11*exp((sin(x*4*pi/24)))^2+a12*exp((sin(x*4*pi/24)))^3+a13*exp((sin(x*4*pi/24)))^4
+        + a14*exp(cos(x*4*pi/24))+a15*exp((cos(x*4*pi/24)))^2+a16*exp((cos(x*4*pi/24)))^3+a17*exp((cos(x*4*pi/24)))^4
+    }
+    fTime
+}
+#Function defining travel time reliability function, use high order formula
+defineTTRFunction <- function(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17){
+    fTTR <- function(x){
+#        a*x^4+b*x^3+c*x^2+d*x+e
+        a1+a2*exp(sin(x*2*pi/24))+a3*exp((sin(x*2*pi/24)))^2+a4*exp((sin(x*2*pi/24)))^3+a5*exp((sin(x*2*pi/24)))^4
+        + a6*exp(cos(x*2*pi/24))+a7*exp((cos(x*2*pi/24)))^2+a8*exp((cos(x*2*pi/24)))^3+a9*exp((cos(x*2*pi/24)))^4
+        +a10*exp(sin(x*4*pi/24))+a11*exp((sin(x*4*pi/24)))^2+a12*exp((sin(x*4*pi/24)))^3+a13*exp((sin(x*4*pi/24)))^4
+        + a14*exp(cos(x*4*pi/24))+a15*exp((cos(x*4*pi/24)))^2+a16*exp((cos(x*4*pi/24)))^3+a17*exp((cos(x*4*pi/24)))^4
+    }
+    fTTR
+}
+
+#Assume function for travel time and TTR
+time <- defineTimeFunction(0,1,1,0,0,1,1,0,1,0,1,0.5,0.3,0.4,1,0.9,0.3)
+TTR <- defineTTRFunction(1,0.3,0.5,0.7,0,1,0,1,1,1,0.5,0,0,0.6,0.4,0.7,0.1)
+
+#Generate sample
+#install.packages("evd")
+library(evd)
+set.seed(3)
+nobs = 1000
+#timeInterval represents the time interval we want to have (unit: min). For example, if timeInterval = 60, we have 1hour time interval, then we have 24 alternatives
+timeInterval = 60
+nalt= 1440/timeInterval
+#base is the alternative matrix, nrow = nobs, ncol = nalt, for each row, change from 1/nalt to 24, representing nalt alternatives
+base = (t(matrix(1:nalt, nalt, nobs))-0.5)/(60/timeInterval)
+#constantMatrix = matrix(1,nobs,nalt)
+#constantMatrix[,1] = 0
+PAT = runif(nobs,min = 0, max = 24)
+#constant = runif(nobs,min = )
+#earlyFunction calculates arrival early time
+earlyFunction <- function(base,PAT,nalt){
+    early = base
+    for (i in 1:nalt){
+        early[,i] = PAT - base[,i]- time(base[,i])
+        flag = early[,i]<0
+        early[flag,i] = 0
+    }
+    early
+}
+#lateFunction calculates arrival late time
+lateFunction <- function(base,PAT,nalt){
+    late = base
+    for (i in 1:nalt){
+        late[,i] = base[,i]+ time(base[,i])- PAT
+        flag = late[,i]<0
+        late[flag,i] = 0
+    }
+    late
+}
+early = earlyFunction(base, PAT, nalt)
+late = lateFunction(base,PAT, nalt)
+
+#U is utility functions calculated through the base matrix
+#beta_time, beta_TTR are the coeffients before time and TTR, should be negative
+beta_early = -0.03
+beta_late = -0.05
+beta_time = -0.08
+beta_TTR = -0.12
+#beta_constant = c(0,0,0,0,0,0.5,0.5,0.5,0.5,0.5,0.5,0.5,1,1,1,1,1,1,1,0.5,0.5,0.5,0,0)
+#constant_Mul = constantMatrix*beta_constant
+#U = time(base)*beta_time + TTR(base) * beta_TTR + rgumbel(nobs*nalt)
+U = early*beta_early + late* beta_late + time(base)*beta_time + TTR(base) * beta_TTR
+Y = apply(exp(U), 1, which.max)
+
+#Loglikelihood function
+defineLogitLLFunction <- function(n){
+    logitLL <- function(b,X,Y){
+        time = X[1]
+        TTR = X[2]
+        nalt = n
+        timeInterval = 1440/nalt
+        base = (t(matrix(1:nalt, nalt, length(Y)))-0.5)/(60/timeInterval)
+        
+        U = early*b[1] + late* b[2] + time(base)*b[3] + TTR(base) * b[4]
+        expo = exp(U)
+        denom = rowSums(expo)
+        nume = matrix(0, nrow = nrow(expo), ncol =1)
+        for(i in 1:nrow(expo)){
+            nume[i] = expo[i,Y[i]]
+        }
+        sum(log(nume/denom))
+    }
+    logitLL
+}
+logitLL<-defineLogitLLFunction(nalt)
+#Estimate parameters
+logit = function(time, TTR, Y){
+    par = c(-0.03,-0.05,-0.08,-0.12)
+    o = optim(par = par, fn = logitLL, method = "L-BFGS-B", lower = -30, upper = 30, control = list(fnscale = -1), X=c(time, TTR), Y=Y)
+}
+
+res = logit(time, TTR, Y)
+ 
