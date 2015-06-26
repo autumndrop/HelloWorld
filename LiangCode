@@ -2,7 +2,7 @@
 #consider two variables for the departure time choice, time and reliability, both variables are functions of time of day. 
 #Haven't consider time-constant covariates yet
 
-#Function defining travel time function, use Quintic formula
+#Function defining travel time function, use similar formula from paper: Time of Day Modeling in a Tour-Based Context: The Tel-Aviv Experience
 defineTimeFunction <- function(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17){
     fTime <- function(x){
 #        a*x^4+b*x^3+c*x^2+d*x+e
@@ -104,6 +104,6 @@ logit = function(time, TTR, Y){
     par = c(-0.03,-0.05,-0.08,-0.12)
     o = optim(par = par, fn = logitLL, method = "L-BFGS-B", lower = -30, upper = 30, control = list(fnscale = -1), X=c(time, TTR), Y=Y)
 }
-
+// Problems: the estimated parameters 3,4 (time and TTR) are not correct
 res = logit(time, TTR, Y)
  
