@@ -3,13 +3,20 @@
 #Haven't consider time-constant covariates yet
 
 #Function defining travel time function, use similar formula from paper: Time of Day Modeling in a Tour-Based Context: The Tel-Aviv Experience
+#Add disturbance to the time and TTR function
 defineTimeFunction <- function(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17){
     fTime <- function(x){
 #        a*x^4+b*x^3+c*x^2+d*x+e
-        a1+a2*exp(sin(x*2*pi/24))+a3*exp((sin(x*2*pi/24)))^2+a4*exp((sin(x*2*pi/24)))^3+a5*exp((sin(x*2*pi/24)))^4
-        + a6*exp(cos(x*2*pi/24))+a7*exp((cos(x*2*pi/24)))^2+a8*exp((cos(x*2*pi/24)))^3+a9*exp((cos(x*2*pi/24)))^4
-        +a10*exp(sin(x*4*pi/24))+a11*exp((sin(x*4*pi/24)))^2+a12*exp((sin(x*4*pi/24)))^3+a13*exp((sin(x*4*pi/24)))^4
-        + a14*exp(cos(x*4*pi/24))+a15*exp((cos(x*4*pi/24)))^2+a16*exp((cos(x*4*pi/24)))^3+a17*exp((cos(x*4*pi/24)))^4
+        resu = matrix(0,nrow(x),ncol(x))
+        for (i in 1:nrow(x)){
+            for (j in 1:ncol(x)){
+                resu[i,j]=a1+a2*exp(sin(x[i,j]*2*pi/24))+a3*exp((sin(x[i,j]*2*pi/24)))^2+a4*exp((sin(x[i,j]*2*pi/24)))^3+a5*exp((sin(x[i,j]*2*pi/24)))^4
+                + a6*exp(cos(x[i,j]*2*pi/24))+a7*exp((cos(x[i,j]*2*pi/24)))^2+a8*exp((cos(x[i,j]*2*pi/24)))^3+a9*exp((cos(x[i,j]*2*pi/24)))^4
+                +a10*exp(sin(x[i,j]*4*pi/24))+a11*exp((sin(x[i,j]*4*pi/24)))^2+a12*exp((sin(x[i,j]*4*pi/24)))^3+a13*exp((sin(x[i,j]*4*pi/24)))^4
+                + a14*exp(cos(x[i,j]*4*pi/24))+a15*exp((cos(x[i,j]*4*pi/24)))^2+a16*exp((cos(x[i,j]*4*pi/24)))^3+a17*exp((cos(x[i,j]*4*pi/24)))^4
+            }
+        }
+        resu + matrix(runif(nrow(x)*ncol(x),min = 0,max = 1),nrow(x),ncol(x))
     }
     fTime
 }
@@ -17,10 +24,16 @@ defineTimeFunction <- function(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a1
 defineTTRFunction <- function(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17){
     fTTR <- function(x){
 #        a*x^4+b*x^3+c*x^2+d*x+e
-        a1+a2*exp(sin(x*2*pi/24))+a3*exp((sin(x*2*pi/24)))^2+a4*exp((sin(x*2*pi/24)))^3+a5*exp((sin(x*2*pi/24)))^4
-        + a6*exp(cos(x*2*pi/24))+a7*exp((cos(x*2*pi/24)))^2+a8*exp((cos(x*2*pi/24)))^3+a9*exp((cos(x*2*pi/24)))^4
-        +a10*exp(sin(x*4*pi/24))+a11*exp((sin(x*4*pi/24)))^2+a12*exp((sin(x*4*pi/24)))^3+a13*exp((sin(x*4*pi/24)))^4
-        + a14*exp(cos(x*4*pi/24))+a15*exp((cos(x*4*pi/24)))^2+a16*exp((cos(x*4*pi/24)))^3+a17*exp((cos(x*4*pi/24)))^4
+        resu = matrix(0,nrow(x),ncol(x))
+        for (i in 1:nrow(x)){
+            for (j in 1:ncol(x)){
+                resu[i,j]=a1+a2*exp(sin(x[i,j]*2*pi/24))+a3*exp((sin(x[i,j]*2*pi/24)))^2+a4*exp((sin(x[i,j]*2*pi/24)))^3+a5*exp((sin(x[i,j]*2*pi/24)))^4
+                + a6*exp(cos(x[i,j]*2*pi/24))+a7*exp((cos(x[i,j]*2*pi/24)))^2+a8*exp((cos(x[i,j]*2*pi/24)))^3+a9*exp((cos(x[i,j]*2*pi/24)))^4
+                +a10*exp(sin(x[i,j]*4*pi/24))+a11*exp((sin(x[i,j]*4*pi/24)))^2+a12*exp((sin(x[i,j]*4*pi/24)))^3+a13*exp((sin(x[i,j]*4*pi/24)))^4
+                + a14*exp(cos(x[i,j]*4*pi/24))+a15*exp((cos(x[i,j]*4*pi/24)))^2+a16*exp((cos(x[i,j]*4*pi/24)))^3+a17*exp((cos(x[i,j]*4*pi/24)))^4
+            }
+        }
+        resu + matrix(runif(nrow(x)*ncol(x),min = 0,max = 1),nrow(x),ncol(x))
     }
     fTTR
 }
@@ -38,16 +51,17 @@ nobs = 1000
 timeInterval = 60
 nalt= 1440/timeInterval
 #base is the alternative matrix, nrow = nobs, ncol = nalt, for each row, change from 1/nalt to 24, representing nalt alternatives
+#timeMatrix is travel time matrix
+#TTRMatrix is TTR matrix
 base = (t(matrix(1:nalt, nalt, nobs))-0.5)/(60/timeInterval)
-#constantMatrix = matrix(1,nobs,nalt)
-#constantMatrix[,1] = 0
+timeMatrix = time(base)
+TTRMatrix = TTR(base)
 PAT = runif(nobs,min = 0, max = 24)
-#constant = runif(nobs,min = )
 #earlyFunction calculates arrival early time
 earlyFunction <- function(base,PAT,nalt){
     early = base
     for (i in 1:nalt){
-        early[,i] = PAT - base[,i]- time(base[,i])
+        early[,i] = PAT - base[,i]- timeMatrix[,i]
         flag = early[,i]<0
         early[flag,i] = 0
     }
@@ -57,7 +71,7 @@ earlyFunction <- function(base,PAT,nalt){
 lateFunction <- function(base,PAT,nalt){
     late = base
     for (i in 1:nalt){
-        late[,i] = base[,i]+ time(base[,i])- PAT
+        late[,i] = base[,i]+ timeMatrix[,i]- PAT
         flag = late[,i]<0
         late[flag,i] = 0
     }
@@ -68,14 +82,11 @@ late = lateFunction(base,PAT, nalt)
 
 #U is utility functions calculated through the base matrix
 #beta_time, beta_TTR are the coeffients before time and TTR, should be negative
-beta_early = -0.03
-beta_late = -0.05
-beta_time = -0.08
-beta_TTR = -0.12
-#beta_constant = c(0,0,0,0,0,0.5,0.5,0.5,0.5,0.5,0.5,0.5,1,1,1,1,1,1,1,0.5,0.5,0.5,0,0)
-#constant_Mul = constantMatrix*beta_constant
-#U = time(base)*beta_time + TTR(base) * beta_TTR + rgumbel(nobs*nalt)
-U = early*beta_early + late* beta_late + time(base)*beta_time + TTR(base) * beta_TTR
+beta_early = -3
+beta_late = -5
+beta_time = -8
+beta_TTR = -10
+U = early*beta_early + late* beta_late + timeMatrix*beta_time + TTRMatrix * beta_TTR + rgumbel(nobs*nalt)
 Y = apply(exp(U), 1, which.max)
 
 #Loglikelihood function
@@ -87,7 +98,7 @@ defineLogitLLFunction <- function(n){
         timeInterval = 1440/nalt
         base = (t(matrix(1:nalt, nalt, length(Y)))-0.5)/(60/timeInterval)
         
-        U = early*b[1] + late* b[2] + time(base)*b[3] + TTR(base) * b[4]
+        U = early*b[1] + late* b[2] + timeMatrix*b[3] + TTRMatrix * b[4]
         expo = exp(U)
         denom = rowSums(expo)
         nume = matrix(0, nrow = nrow(expo), ncol =1)
@@ -102,8 +113,7 @@ logitLL<-defineLogitLLFunction(nalt)
 #Estimate parameters
 logit = function(time, TTR, Y){
     par = c(-0.03,-0.05,-0.08,-0.12)
-    o = optim(par = par, fn = logitLL, method = "L-BFGS-B", lower = -30, upper = 30, control = list(fnscale = -1), X=c(time, TTR), Y=Y)
+    o = optim(par = par, fn = logitLL, method = "L-BFGS-B", lower = -10, upper = 10, control = list(fnscale = -1), X=c(time, TTR), Y=Y)
 }
-// Problems: the estimated parameters 3,4 (time and TTR) are not correct
+
 res = logit(time, TTR, Y)
- 
