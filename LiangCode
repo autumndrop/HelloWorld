@@ -4,33 +4,50 @@
 
 #Function defining travel time function, use similar formula from paper: Time of Day Modeling in a Tour-Based Context: The Tel-Aviv Experience
 #Add disturbance to the time and TTR function
-defineTimeFunction <- function(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17){
+defineTimeMatrix <- function(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17){
     fTime <- function(x){
 #        a*x^4+b*x^3+c*x^2+d*x+e
         resu = matrix(0,nrow(x),ncol(x))
         for (i in 1:nrow(x)){
             for (j in 1:ncol(x)){
-                resu[i,j]=a1+a2*exp(sin(x[i,j]*2*pi/24))+a3*exp((sin(x[i,j]*2*pi/24)))^2+a4*exp((sin(x[i,j]*2*pi/24)))^3+a5*exp((sin(x[i,j]*2*pi/24)))^4
+                resu[i,j]=(a1+a2*exp(sin(x[i,j]*2*pi/24))+a3*exp((sin(x[i,j]*2*pi/24)))^2+a4*exp((sin(x[i,j]*2*pi/24)))^3+a5*exp((sin(x[i,j]*2*pi/24)))^4
                 + a6*exp(cos(x[i,j]*2*pi/24))+a7*exp((cos(x[i,j]*2*pi/24)))^2+a8*exp((cos(x[i,j]*2*pi/24)))^3+a9*exp((cos(x[i,j]*2*pi/24)))^4
                 +a10*exp(sin(x[i,j]*4*pi/24))+a11*exp((sin(x[i,j]*4*pi/24)))^2+a12*exp((sin(x[i,j]*4*pi/24)))^3+a13*exp((sin(x[i,j]*4*pi/24)))^4
-                + a14*exp(cos(x[i,j]*4*pi/24))+a15*exp((cos(x[i,j]*4*pi/24)))^2+a16*exp((cos(x[i,j]*4*pi/24)))^3+a17*exp((cos(x[i,j]*4*pi/24)))^4
+                + a14*exp(cos(x[i,j]*4*pi/24))+a15*exp((cos(x[i,j]*4*pi/24)))^2+a16*exp((cos(x[i,j]*4*pi/24)))^3+a17*exp((cos(x[i,j]*4*pi/24)))^4)/10
             }
         }
         resu + matrix(runif(nrow(x)*ncol(x),min = 0,max = 1),nrow(x),ncol(x))
     }
     fTime
 }
+
+defineTimeFunction <- function(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17){
+    fTime <- function(x){
+        #        a*x^4+b*x^3+c*x^2+d*x+e
+        re = x
+        for (i in 1:length(x)){
+            re[i] = (a1+a2*exp(sin(x[i]*2*pi/24))+a3*exp((sin(x[i]*2*pi/24)))^2+a4*exp((sin(x[i]*2*pi/24)))^3+a5*exp((sin(x[i]*2*pi/24)))^4
+            + a6*exp(cos(x[i]*2*pi/24))+a7*exp((cos(x[i]*2*pi/24)))^2+a8*exp((cos(x[i]*2*pi/24)))^3+a9*exp((cos(x[i]*2*pi/24)))^4
+            +a10*exp(sin(x[i]*4*pi/24))+a11*exp((sin(x[i]*4*pi/24)))^2+a12*exp((sin(x[i]*4*pi/24)))^3+a13*exp((sin(x[i]*4*pi/24)))^4
+            + a14*exp(cos(x[i]*4*pi/24))+a15*exp((cos(x[i]*4*pi/24)))^2+a16*exp((cos(x[i]*4*pi/24)))^3+a17*exp((cos(x[i]*4*pi/24)))^4)/10
+        }
+        re
+    }
+    fTime
+}
+
+
 #Function defining travel time reliability function, use high order formula
-defineTTRFunction <- function(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17){
+defineTTRMatrix <- function(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17){
     fTTR <- function(x){
 #        a*x^4+b*x^3+c*x^2+d*x+e
         resu = matrix(0,nrow(x),ncol(x))
         for (i in 1:nrow(x)){
             for (j in 1:ncol(x)){
-                resu[i,j]=a1+a2*exp(sin(x[i,j]*2*pi/24))+a3*exp((sin(x[i,j]*2*pi/24)))^2+a4*exp((sin(x[i,j]*2*pi/24)))^3+a5*exp((sin(x[i,j]*2*pi/24)))^4
+                resu[i,j]=(a1+a2*exp(sin(x[i,j]*2*pi/24))+a3*exp((sin(x[i,j]*2*pi/24)))^2+a4*exp((sin(x[i,j]*2*pi/24)))^3+a5*exp((sin(x[i,j]*2*pi/24)))^4
                 + a6*exp(cos(x[i,j]*2*pi/24))+a7*exp((cos(x[i,j]*2*pi/24)))^2+a8*exp((cos(x[i,j]*2*pi/24)))^3+a9*exp((cos(x[i,j]*2*pi/24)))^4
                 +a10*exp(sin(x[i,j]*4*pi/24))+a11*exp((sin(x[i,j]*4*pi/24)))^2+a12*exp((sin(x[i,j]*4*pi/24)))^3+a13*exp((sin(x[i,j]*4*pi/24)))^4
-                + a14*exp(cos(x[i,j]*4*pi/24))+a15*exp((cos(x[i,j]*4*pi/24)))^2+a16*exp((cos(x[i,j]*4*pi/24)))^3+a17*exp((cos(x[i,j]*4*pi/24)))^4
+                + a14*exp(cos(x[i,j]*4*pi/24))+a15*exp((cos(x[i,j]*4*pi/24)))^2+a16*exp((cos(x[i,j]*4*pi/24)))^3+a17*exp((cos(x[i,j]*4*pi/24)))^4)/20
             }
         }
         resu + matrix(runif(nrow(x)*ncol(x),min = 0,max = 1),nrow(x),ncol(x))
@@ -38,9 +55,24 @@ defineTTRFunction <- function(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15
     fTTR
 }
 
+defineTTRFunction <- function(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17){
+    fTTR <- function(x){
+        re = x
+        for (i in 1:length(x)){
+            re[i]=(a1+a2*exp(sin(x[i]*2*pi/24))+a3*exp((sin(x[i]*2*pi/24)))^2+a4*exp((sin(x[i]*2*pi/24)))^3+a5*exp((sin(x[i]*2*pi/24)))^4
+            + a6*exp(cos(x[i]*2*pi/24))+a7*exp((cos(x[i]*2*pi/24)))^2+a8*exp((cos(x[i]*2*pi/24)))^3+a9*exp((cos(x[i]*2*pi/24)))^4
+            +a10*exp(sin(x[i]*4*pi/24))+a11*exp((sin(x[i]*4*pi/24)))^2+a12*exp((sin(x[i]*4*pi/24)))^3+a13*exp((sin(x[i]*4*pi/24)))^4
+            + a14*exp(cos(x[i]*4*pi/24))+a15*exp((cos(x[i]*4*pi/24)))^2+a16*exp((cos(x[i]*4*pi/24)))^3+a17*exp((cos(x[i]*4*pi/24)))^4)/20
+        }
+        re
+    }
+    fTTR
+}
 #Assume function for travel time and TTR
-time <- defineTimeFunction(0,1,1,0,0,1,1,0,1,0,1,0.5,0.3,0.4,1,0.9,0.3)
-TTR <- defineTTRFunction(1,0.3,0.5,0.7,0,1,0,1,1,1,0.5,0,0,0.6,0.4,0.7,0.1)
+time <- defineTimeMatrix(0,1,1,0,0,1,1,0,1,0,1,0.5,0.3,0.4,1,0.9,0.3)
+TTR <- defineTTRMatrix(1,0.3,0.5,0.7,0,1,0,1,1,1,0.5,0,0,0.6,0.4,0.7,0.1)
+timeFun <- defineTimeFunction(0,1,1,0,0,1,1,0,1,0,1,0.5,0.3,0.4,1,0.9,0.3)
+TTRFun <- defineTTRFunction(1,0.3,0.5,0.7,0,1,0,1,1,1,0.5,0,0,0.6,0.4,0.7,0.1)
 
 #Generate sample
 #install.packages("evd")
@@ -67,6 +99,17 @@ earlyFunction <- function(base,PAT,nalt){
     }
     early
 }
+
+defineEarlyFunction <- function(base,PAT,nalt){
+    early = base
+    for (i in 1:nalt){
+        early[,i] = PAT - base[,i]- timeMatrix[,i]
+        flag = early[,i]<0
+        early[flag,i] = 0
+    }
+    early
+}
+
 #lateFunction calculates arrival late time
 lateFunction <- function(base,PAT,nalt){
     late = base
@@ -82,10 +125,12 @@ late = lateFunction(base,PAT, nalt)
 
 #U is utility functions calculated through the base matrix
 #beta_time, beta_TTR are the coeffients before time and TTR, should be negative
-beta_early = -3
-beta_late = -5
-beta_time = -8
-beta_TTR = -10
+beta_early = -7
+beta_late = -10
+beta_time = -5
+beta_TTR = -1
+b_true = c(beta_early,beta_late, beta_time,beta_TTR)
+
 U = early*beta_early + late* beta_late + timeMatrix*beta_time + TTRMatrix * beta_TTR + rgumbel(nobs*nalt)
 Y = apply(exp(U), 1, which.max)
 
@@ -117,3 +162,95 @@ logit = function(time, TTR, Y){
 }
 
 res = logit(time, TTR, Y)
+b = res$par
+#Calculate the approximation error
+#First, initialize the variables other than time
+pat = 6
+#calculate the error for the first bin
+#disrete probability pDL
+library(plyr)
+pDLCalculate <- function(pat){
+    t = base[1,]
+    pDL = t
+    sumU = 0
+    for (i in 1:nalt){
+        tempt = base[1,i]
+        earlyi = if ((pat - tempt- timeFun(tempt))>0) (pat - tempt- timeFun(tempt)) else 0
+        latei = if ((tempt+ timeFun(tempt) - pat)>0) (tempt+ timeFun(tempt) - pat) else 0 
+        u = earlyi*b[1] + latei* b[2] + timeFun(tempt)*b[3] + TTRFun(tempt) * b[4]
+        sumU = sumU+exp(u)
+    }
+    for (i in 1:nalt){
+        earlyt = if ((pat - t[i]- timeFun(t[i]))>0) (pat - t[i]- timeFun(t[i])) else 0
+        latet = if ((t[i]+ timeFun(t[i]) - pat)>0) (t[i]+ timeFun(t[i]) - pat) else 0 
+        u = earlyt*b[1] + latet* b[2] + timeFun(t[i])*b[3] + TTRFun(t[i]) * b[4]
+        pDL[i] = exp(u)/sumU
+    }
+    pDL
+}
+
+pDL = pDLCalculate(pat)
+pDL_round = round_any(pDL,0.001)
+#continuous probability .
+tUpper = (1:nalt)/(60/timeInterval)
+continuousLogit.density<-function(t,L,U,b) {
+    continuouslogit.denom<-function(tempt){
+        re = tempt
+        for (i in 1:length(tempt)){
+            earlyi = if ((pat - tempt[i]- timeFun(tempt[i]))>0) (pat - tempt[i]- timeFun(tempt[i])) else 0
+            latei = if ((tempt[i]+ timeFun(tempt[i]) - pat)>0) (tempt[i]+ timeFun(tempt[i]) - pat) else 0 
+            V_t.d <- earlyi*b[1] + latei* b[2] + timeFun(tempt[i])*b[3] + TTRFun(tempt[i]) * b[4]
+            re[i] = exp(V_t.d)
+        }
+        return(re)
+    }
+    
+    denom = integrate(continuouslogit.denom,lower=L,upper=U)$value
+    re = t
+    for (i in 1:length(t)){
+        earlyi = if ((pat - t[i]- timeFun(t[i]))>0) (pat - t[i]- timeFun(t[i])) else 0
+        latei = if ((t[i]+ timeFun(t[i]) - pat)>0) (t[i]+ timeFun(t[i]) - pat) else 0 
+        V_t <- earlyi*b[1] + latei* b[2] + timeFun(t[i])*b[3] + TTRFun(t[i]) * b[4] 
+        re[i] = exp(V_t)/denom
+    }
+    
+    re
+}
+
+
+continuousLogit.cdf<-function(t,L,U,b) {
+    prob<-NULL
+    for (i in 1:length(t)) {
+        prob<-c(prob,integrate(continuousLogit.density,lower=L,upper=t[i],L=L,U=U,b=b)$value)
+    }
+    return(prob)
+}
+
+pCLTransform <- function(prob){
+    re = prob
+    re[1] = prob[1]
+    for (i in 2:length(prob)){
+        re[i] = prob[i]-prob[i-1]
+    }
+    re
+}
+
+#pCL is the probability calculated from the 
+
+pCL = pCLTransform(continuousLogit.cdf(tUpper,0,24,b_true))
+pCL_round = round_any(pCL,0.001)
+pCL_estimate = pCLTransform(continuousLogit.cdf(tUpper,0,24,b))
+pCL_estimate_round = round_any(pCL_estimate,0.001)
+#error calculating
+
+error_calculating <- function(pDL,pCL){
+    error = pDL-pCL
+    error_percent = error
+    flag = (error!=0)
+    error_percent[flag] = error[flag]/pCL[flag]
+    a$error = error
+    a$error_percent = error_percent
+    a
+}
+
+error = error_calculating(pDL_round,pCL_round)
