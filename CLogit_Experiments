@@ -1,0 +1,385 @@
+#
+# Discretized Multinomial Logit vs. Continuous Logit
+#
+# Approximation error vs. Sampling error
+#
+
+
+#Define Dataframe
+nobs<-100
+df <- data.frame(ID=1:nobs, stringsAsFactors=FALSE)
+
+#OD distance is Gamma distributed
+dist <- rgamma(nobs,2,0.25)
+
+df$distance<-dist
+
+#OD Freeflow Speed is Discrete Uniform distributed
+fspeed <- sample(c(40,50,60,70,80,90),nobs,replace=T)
+
+df$ODfspeed<-fspeed
+
+#OD Peak Speed is Discrete Uniform distributed
+pspeed <- sample(c(15,20,25,30,35,40),nobs,replace=T)
+
+df$ODpspeed<-pspeed
+
+#Delay
+delay <- 1 - (pspeed/fspeed)
+
+df$delay<-delay
+
+#Discretized Multinomial Logit
+#Function defining travel speed function, use similar formula from paper: Time of Day Modeling in a Tour-Based Context: The Tel-Aviv Experience 
+defineTravelTimeMatrix <- function(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19){
+    fTime <- function(x){
+#        a*x^4+b*x^3+c*x^2+d*x+e
+        resu = matrix(0,nrow(x),ncol(x))
+        delay<-df$delay
+        distance<-df$distance
+        fspeed<-df$ODfspeed
+        for (i in 1:nrow(x)){
+            for (j in 1:ncol(x)){
+                resu[i,j]=distance[i]/(fspeed[i]*exp(a1+a2*log(distance[i])+a3*delay[i]+a4*delay[i]*exp(sin(x[i,j]*2*pi/24))+a5*delay[i]*exp((sin(x[i,j]*2*pi/24)))^2+a6*delay[i]*exp((sin(x[i,j]*2*pi/24)))^3+a7*delay[i]*exp((sin(x[i,j]*2*pi/24)))^4
+                + a8*delay[i]*exp(cos(x[i,j]*2*pi/24))+a9*delay[i]*exp((cos(x[i,j]*2*pi/24)))^2+a10*delay[i]*exp((cos(x[i,j]*2*pi/24)))^3+a11*delay[i]*exp((cos(x[i,j]*2*pi/24)))^4
+                +a12*delay[i]*exp(sin(x[i,j]*4*pi/24))+a13*delay[i]*exp((sin(x[i,j]*4*pi/24)))^2+a14*delay[i]*exp((sin(x[i,j]*4*pi/24)))^3+a15*delay[i]*exp((sin(x[i,j]*4*pi/24)))^4
+                + a16*delay[i]*exp(cos(x[i,j]*4*pi/24))+a17*delay[i]*exp((cos(x[i,j]*4*pi/24)))^2+a18*delay[i]*exp((cos(x[i,j]*4*pi/24)))^3+a19*delay[i]*exp((cos(x[i,j]*4*pi/24)))^4))
+                            }
+        }
+        resu #+ matrix(runif(nrow(x)*ncol(x),min = 0,max = 1),nrow(x),ncol(x))
+    }
+    fTime
+}
+
+#Continuous Logit
+#Function defining travel speed function, use similar formula from paper: Time of Day Modeling in a Tour-Based Context: The Tel-Aviv Experience 
+# defineTravelTimeFunction<- function(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19){
+	 # fTime <- function(x){
+# #        a*x^4+b*x^3+c*x^2+d*x+e
+        # if (is.numeric(dim(x))==FALSE) {dim(x)<-c(length(x),1)}
+        
+        # re <- t(matrix(0, dim(x)[2], nobs))
+        # delay<-df$delay
+        # distance<-df$distance
+        # fspeed<-df$ODfspeed
+        # for (i in 1:dim(re)[1]){
+		# re[i,]=distance[i]/(fspeed[i]*exp(a1+a2*log(distance[i])+a3*delay[i]+a4*delay[i]*exp(sin(x[i,]*2*pi/24))+a5*delay[i]*exp((sin(x[i,]*2*pi/24)))^2+a6*delay[i]*exp((sin(x[i,]*2*pi/24)))^3+a7*delay[i]*exp((sin(x[i,]*2*pi/24)))^4
+                # + a8*delay[i]*exp(cos(x[i,]*2*pi/24))+a9*delay[i]*exp((cos(x[i,]*2*pi/24)))^2+a10*delay[i]*exp((cos(x[i,]*2*pi/24)))^3+a11*delay[i]*exp((cos(x[i,]*2*pi/24)))^4
+                # +a12*delay[i]*exp(sin(x[i,]*4*pi/24))+a13*delay[i]*exp((sin(x[i,]*4*pi/24)))^2+a14*delay[i]*exp((sin(x[i,]*4*pi/24)))^3+a15*delay[i]*exp((sin(x[i,]*4*pi/24)))^4
+                # + a16*delay[i]*exp(cos(x[i,]*4*pi/24))+a17*delay[i]*exp((cos(x[i,]*4*pi/24)))^2+a18*delay[i]*exp((cos(x[i,]*4*pi/24)))^3+a19*delay[i]*exp((cos(x[i,]*4*pi/24)))^4))
+            # }
+        # re
+     # }
+    # fTime
+# }
+
+defineTravelTimeFunction<- function(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19){
+	 fTime <- function(x, id){
+#        a*x^4+b*x^3+c*x^2+d*x+e
+         re <- x
+        delay<-df$delay[id]
+        distance<-df$distance[id]
+        fspeed<-df$ODfspeed[id]
+        for (i in 1:length(x)){
+		re[i]=distance/(fspeed*exp(a1+a2*log(distance)+a3*delay+a4*delay*exp(sin(x[i]*2*pi/24))+a5*delay*exp((sin(x[i]*2*pi/24)))^2+a6*delay*exp((sin(x[i]*2*pi/24)))^3+a7*delay*exp((sin(x[i]*2*pi/24)))^4
+                + a8*delay*exp(cos(x[i]*2*pi/24))+a9*delay*exp((cos(x[i]*2*pi/24)))^2+a10*delay*exp((cos(x[i]*2*pi/24)))^3+a11*delay*exp((cos(x[i]*2*pi/24)))^4
+                +a12*delay*exp(sin(x[i]*4*pi/24))+a13*delay*exp((sin(x[i]*4*pi/24)))^2+a14*delay*exp((sin(x[i]*4*pi/24)))^3+a15*delay*exp((sin(x[i]*4*pi/24)))^4
+                + a16*delay*exp(cos(x[i]*4*pi/24))+a17*delay*exp((cos(x[i]*4*pi/24)))^2+a18*delay*exp((cos(x[i]*4*pi/24)))^3+a19*delay*exp((cos(x[i]*4*pi/24)))^4))
+            }
+        re
+     }
+    fTime
+}
+
+
+#Discretized Multinomial Logit
+#Function defining travel time reliability function, use high order formula
+defineTTRMatrix <- function(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17){
+    fTTR <- function(x){
+#        a*x^4+b*x^3+c*x^2+d*x+e
+        resu = matrix(0,nrow(x),ncol(x))
+        for (i in 1:nrow(x)){
+            for (j in 1:ncol(x)){
+                resu[i,j]=(a1+a2*exp(sin(x[i,j]*2*pi/24))+a3*exp((sin(x[i,j]*2*pi/24)))^2+a4*exp((sin(x[i,j]*2*pi/24)))^3+a5*exp((sin(x[i,j]*2*pi/24)))^4
+                + a6*exp(cos(x[i,j]*2*pi/24))+a7*exp((cos(x[i,j]*2*pi/24)))^2+a8*exp((cos(x[i,j]*2*pi/24)))^3+a9*exp((cos(x[i,j]*2*pi/24)))^4
+                +a10*exp(sin(x[i,j]*4*pi/24))+a11*exp((sin(x[i,j]*4*pi/24)))^2+a12*exp((sin(x[i,j]*4*pi/24)))^3+a13*exp((sin(x[i,j]*4*pi/24)))^4
+                + a14*exp(cos(x[i,j]*4*pi/24))+a15*exp((cos(x[i,j]*4*pi/24)))^2+a16*exp((cos(x[i,j]*4*pi/24)))^3+a17*exp((cos(x[i,j]*4*pi/24)))^4)/20
+            }
+        }
+        resu + matrix(runif(nrow(x)*ncol(x),min = 0,max = 1),nrow(x),ncol(x))
+    }
+    fTTR
+}
+
+#Continuous Logit
+#Function defining travel time reliability function, use high order formula
+defineTTRFunction <- function(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17){
+    fTTR <- function(x){
+        re = x
+        for (i in 1:length(x)){
+            re[i]=(a1+a2*exp(sin(x[i]*2*pi/24))+a3*exp((sin(x[i]*2*pi/24)))^2+a4*exp((sin(x[i]*2*pi/24)))^3+a5*exp((sin(x[i]*2*pi/24)))^4
+            + a6*exp(cos(x[i]*2*pi/24))+a7*exp((cos(x[i]*2*pi/24)))^2+a8*exp((cos(x[i]*2*pi/24)))^3+a9*exp((cos(x[i]*2*pi/24)))^4
+            +a10*exp(sin(x[i]*4*pi/24))+a11*exp((sin(x[i]*4*pi/24)))^2+a12*exp((sin(x[i]*4*pi/24)))^3+a13*exp((sin(x[i]*4*pi/24)))^4
+            + a14*exp(cos(x[i]*4*pi/24))+a15*exp((cos(x[i]*4*pi/24)))^2+a16*exp((cos(x[i]*4*pi/24)))^3+a17*exp((cos(x[i]*4*pi/24)))^4)/20
+        }
+        re
+    }
+    fTTR
+}
+
+
+
+
+
+#timeInterval represents the time interval we want to have (unit: min). For example, if timeInterval = 60, we have 1hour time interval, then we have 24 alternatives
+timeInterval = 30
+nalt= 1440/timeInterval
+#base is the alternative matrix, nrow = nobs, ncol = nalt, for each row, change from 1/nalt to 24, representing nalt alternatives
+base = (t(matrix(1:nalt, nalt, nobs))-0.5)/(60/timeInterval)
+delta_t<-
+
+#Assume function for travel time and TTR
+networktraveltime_mnl <- defineTravelTimeMatrix(0.0317,0.0072,-1.4865,-11.2967,12.5130,-5.6582,0.9182,7.0780,-5.6571,1.8769,-0.2359,-1.9606,1.7074,-0.5433,0.0630,2.3598,-0.7701,0.1102,0.0018)
+networktraveltime_cl<-defineTravelTimeFunction(0.0317,0.0072,-1.4865,-11.2967,12.5130,-5.6582,0.9182,7.0780,-5.6571,1.8769,-0.2359,-1.9606,1.7074,-0.5433,0.0630,2.3598,-0.7701,0.1102,0.0018)
+traveltime_mnl<-networktraveltime_mnl(base)
+traveltime_cl<-networktraveltime_cl(0:1)
+curve(networktraveltime_cl(matrix(c(c(x),c(rep(0,length(x)))),nrow=2,ncol=length(x),byrow=T))[1,],from=0,to=24)
+#x<-matrix(c(c(0:24),c(0,rep(0,24))),nrow=2,ncol=25,byrow=T)
+
+#Continuous Logit - True Model
+library(stats4)
+
+#For Plotting and Simulation
+continuousLogit.density_plot<-function(t,L,U,a,b,ID) {
+	
+	exp.V_t <- function(t,ID){
+	V_t <- a + b*60*networktraveltime_cl(t,ID)
+	return(exp(V_t))	
+	}
+	
+	continuouslogit.denom<-function(ID){
+	return(integrate(exp.V_t,lower=L,upper=U,ID=ID)$value)
+	}
+	
+	
+	prob<-exp.V_t(t,ID)/continuouslogit.denom(ID)
+	return(prob)
+}
+
+
+continuousLogit.cdf_plot<-function(t,L,U,a,b,ID) {
+		prob<-NULL
+		for (i in 1:length(t)) {
+			prob<-c(prob,integrate(continuousLogit.density_plot,lower=L,upper=t[i],L=L,U=U,a=a,b=b,ID=ID)$value)
+		}
+	return(prob)
+}
+
+
+candidate.density<-function(x) {
+return(rep(1,length(x)))
+}
+
+curve(continuousLogit.density_plot(t=x,L=0,U=24,a=2,b=0.4,ID=1), from=0, to=24,add=FALSE,xlab="t",ylab="Density")
+curve(candidate.density(x), from=1, to=3,add=TRUE,xlab="t",ylab="Density")
+curve(continuousLogit.cdf_plot(t =x,L=0,U=24,a=2,b=0.4,ID=1), from=0,to=24,add=FALSE,xlab="t",ylab="Probability")
+
+#For Estimation
+
+continuousLogit.loglikelihood<-function(t,L,U,a,b){
+	
+	exp.V_t <- function(t,ID){
+	V_t <- a + b*60*networktraveltime_cl(t,ID)
+	return(exp(V_t))	
+	}
+	
+	expV_t<-Vectorize(exp.V_t)
+	i.expV_t<-expV_t(t,1:nobs)
+	
+	continuouslogit.denom<-function(ID){
+		return(integrate(exp.V_t,lower=L,upper=U,ID=ID)$value)
+	}
+	
+	denom<-Vectorize(continuouslogit.denom)
+	i.denom<-denom(1:nobs)
+	
+	prob<-i.expV_t/i.denom
+	
+	return(-sum(log(prob)))
+
+}
+
+
+continuousLogit.density<-function(t,L,U,a,b){
+	
+	exp.V_t <- function(t,ID){
+	V_t <- a + b*60*networktraveltime_cl(t,ID)
+	return(exp(V_t))	
+	}
+	
+	expV_t<-Vectorize(exp.V_t)
+	i.expV_t<-expV_t(t,1:nobs)
+	
+	continuouslogit.denom<-function(ID){
+		return(integrate(exp.V_t,lower=L,upper=U,ID=ID)$value)
+	}
+	
+	denom<-Vectorize(continuouslogit.denom)
+	i.denom<-denom(1:nobs)
+	
+	prob<-i.expV_t/i.denom
+	return(prob)
+	
+}
+
+
+continuousLogit.cdf<-function(lower_lim,upper_lim,L,U,a,b) {
+	
+	exp.V_t <- function(t,ID){
+	V_t <- a + b*60*networktraveltime_cl(t,ID)
+	return(exp(V_t))	
+	}
+	
+	continuouslogit.denom<-function(ID){
+	return(integrate(exp.V_t,lower=L,upper=U,ID=ID)$value)
+	}
+	
+	denom<-Vectorize(continuouslogit.denom)
+	i.denom<-denom(1:nobs)
+	
+	#print(i.denom)
+	
+	density.integrate<-function(ID,lowerLimit,upperLimit){
+		return(integrate(exp.V_t,lower= lowerLimit,upper= upperLimit,ID=ID)$value)
+	}
+	
+	density_integrate<-Vectorize(density.integrate)
+	i.density<-density_integrate(1:nobs, lower_lim, upper_lim)
+	
+	#print(i.density)
+	
+	prob<-i.density/i.denom
+	return(prob)	
+
+}
+
+
+
+
+#Acceptance-Rejection -- Simulation
+simulate_continuouslogit<-function(M){
+
+candidate.density<-function(x) {
+	if (x>=0 && x<=24) {
+		1
+	} else 0
+}
+
+draws<- c()
+
+for (i in 1:nobs) {
+	
+n.draws<-0
+
+while (n.draws < 1) {
+
+x.c <- runif(1,0,24)
+accept.prob <- continuousLogit.density_plot(x.c,L=0,U=24,a=2,b=0.4,ID=i)/(M*candidate.density(x.c))
+u<-runif(1,0,1)
+if (u <= accept.prob) {
+	draws <- c(draws, x.c)
+	n.draws<-n.draws+1
+}	
+}
+	
+}
+
+return(draws)
+}
+
+#Continuous Logit
+df$choice<-simulate_continuouslogit(1)
+
+print(fit_cl<-mle(continuousLogit.loglikelihood, start=list(b=5), fixed=list(a=0,L=0,U=24,t=df$choice), method="L-BFGS-B",lower=0,upper=5,control=list(trace=TRUE, REPORT=1)))
+print(summary(fit_cl))
+print(vcov(fit_cl))
+
+#Discretized Multinomial Logit
+
+#Convert observed choices to MNL alternative choices
+pos_alt<-NULL
+choice_mnl<-NULL
+for (i in 1:nobs){
+pos_alt[i] <- sum(as.numeric(df$choice[i] > base[1,]))
+
+if (df$choice[i] <= (pos_alt[i])/(60/timeInterval)){
+	if (pos_alt[i]==0){pos_alt[i]<-1}
+	choice_mnl[i]<-base[1, pos_alt[i]]
+} else {
+	choice_mnl[i]<-base[1,pos_alt[i]+1]
+}
+}
+df$choice_mnl<-choice_mnl
+
+multinomialLogit.loglikelihood<-function(a,b){
+  	#Define Choice Probability - Multinomial Logit
+	ChoiceProb<-function(chosenV,sysV){
+	return(exp(chosenV)/rowSums(exp(sysV)))
+	}
+	
+	#Define Systematic Utilities for Discretisize MNL
+	V_ti <- mat.or.vec(nobs, nalt) #systematic utilities for Choice Model
+	V_chosen <- mat.or.vec(nobs, nalt) # Chosen systematic utility for Choice Model
+	
+	V_ti <- a + b*60*networktraveltime_mnl(base)
+    
+    for (i in 1:nobs){
+    V_chosen[i,] <- as.numeric(df$choice_mnl[i] == base[i,])*V_ti[i,]
+	}
+	
+	V_chosen <- rowSums(V_chosen)
+	
+	prob<-mat.or.vec(nobs,1)
+	
+	prob<-ChoiceProb(V_chosen,V_ti)
+	
+	return(-sum(log(prob)))
+	
+}
+
+
+print(fit_mnl<-mle(multinomialLogit.loglikelihood, start=list(b=5), fixed=list(a=0), method="L-BFGS-B",lower=0,upper=5,control=list(trace=TRUE, REPORT=1)))
+print(summary(fit_mnl))
+print(vcov(fit_mnl))
+
+multinomialLogit.probability<-function(a,b){
+
+	#Define Systematic Utilities for Discretisize MNL
+	V_ti <- mat.or.vec(nobs, nalt) #systematic utilities for Choice Model
+	
+	V_ti <- a + b*60*networktraveltime_mnl(base)
+    
+    prob<-mat.or.vec(nobs, nalt)
+
+    
+    prob<-exp(V_ti)/rowSums(exp(V_ti))
+	
+	
+	return(prob)
+
+}
+
+prob_mnl<-multinomialLogit.probability(0,0.4)
+delta_t<-1/(60/timeInterval)
+
+prob_cl<-mat.or.vec(nobs,nalt)
+#Calculate Continuous Logit Probability for each discretized alternative
+for (i in 1:nalt){
+	upper<-i/(60/timeInterval)
+	prob_cl[,i]<-continuousLogit.cdf(lower_lim=upper-delta_t,upper_lim=upper,L=0,U=24,a=0,b=0.4)
+	print(i)
+}
+
+#Calculate Error for every alternative
+error<-mat.or.vec(nobs,nalt)
+error<-abs(prob_mnl-prob_cl)
