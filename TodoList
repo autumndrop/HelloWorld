@@ -1,0 +1,7 @@
+To do list
+
+1) Visualization of the error for the Numerical rule based Continuous Logit
+2) Sampling error simulations, and adding code to output files
+3) Visualize these results from part 2)
+4) Collect the error boxplots for the probability mass function
+5) More comments on the R code.
