@@ -136,13 +136,10 @@ networktraveltime_mnl <- defineTravelTimeMatrix(0.0317,0.0072,-1.4865,-11.2967,1
 networktraveltime_cl<-defineTravelTimeFunction(0.0317,0.0072,-1.4865,-11.2967,12.5130,-5.6582,0.9182,7.0780,-5.6571,1.8769,-0.2359,-1.9606,1.7074,-0.5433,0.0630,2.3598,-0.7701,0.1102,0.0018)
 networktravelcost_mnl<-defineTravelCostMatrix(1,2)
 networktravelcost_cl<-defineTravelCostFunction(1,2)
-traveltime_mnl<-networktraveltime_mnl(base)
-traveltime_cl<-networktraveltime_cl(0:1)
 networktravelcost_cl(3,1)
 networktravelcost_mnl(base)
 
-curve(networktraveltime_cl(matrix(c(c(x),c(rep(0,length(x)))),nrow=2,ncol=length(x),byrow=T))[1,],from=0,to=24)
-#x<-matrix(c(c(0:24),c(0,rep(0,24))),nrow=2,ncol=25,byrow=T)
+curve(networktraveltime_cl(x,100),from=0,to=24)#x<-matrix(c(c(0:24),c(0,rep(0,24))),nrow=2,ncol=25,byrow=T)
 
 #Continuous Logit - True Model
 library(stats4)
@@ -156,7 +153,7 @@ continuousLogit.density_plot<-function(t,L,U,ID,a,b,c,d,e,ff,g,h,i,j,k) {
 	}
 	
 	continuouslogit.denom<-function(ID){
-	denom_integral <- integrate(exp.V_t,lower=L,upper=U,ID=ID,rel.tol=1e-14)
+	denom_integral <- integrate(exp.V_t,lower=L,upper=U,ID=ID,rel.tol=1e-12)
 	#print(paste("Absolute Error of Denominator Integral of ",toString(ID)," is ",toString(denom_integral $abs.error)))
 	return(denom_integral$value)
 	}
@@ -200,7 +197,7 @@ return(rep(1,length(x)))
 }
 
 curve(continuousLogit.density_plot(t=x,L=0,U=24,a=0,b=-0.5,c=0,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34,ID=1), from=0, to=24,add=FALSE,xlab="t",ylab="Density")
-curve(candidate.density(x), from=1, to=3,add=TRUE,xlab="t",ylab="Density")
+curve(candidate.density(x), from=1, to=3,add=FALSE,xlab="t",ylab="Density")
 curve(continuousLogit.cdf_plot(t =x,L=0,U=24,a=0,b=-0.5,c=0,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34,ID=1), from=0,to=24,add=FALSE,xlab="t",ylab="Probability")
 
 #For Estimation
@@ -330,7 +327,6 @@ df$choice<-simulate_continuouslogit(1)
 
 print(fit_cl<-mle(continuousLogit.loglikelihood, start=list(b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34), fixed=list(a=0,c=0,L=0,U=24,t=df$choice), method="L-BFGS-B",lower=rep(-6,9),upper=rep(6,9),control=list(trace=TRUE, REPORT=1)))
 #print(fit_cl<-mle(continuousLogit.loglikelihood, start=list(d=3.70), fixed=list(b=0,a=0,c=0,L=0,U=24,t=df$choice,e=0,ff=0,g=0,i=0,j=0,k=0,h=0), method="L-BFGS-B",lower=rep(-5,9),upper=rep(5,9),control=list(trace=TRUE, REPORT=1)))
-print(fit_cl<-mle(continuousLogit.loglikelihood, start=list(b=-0.4628174,d=3.3507203,e= 1.9324030,ff= 2.5548755,g= 0.4869836,h=-4.0458500,i=-0.8318338,j= 1.9025267,k= 1.2381620), fixed=list(a=0,c=0,L=0,U=24,t=df$choice), method="L-BFGS-B",lower=rep(-5,9),upper=rep(5,9),control=list(trace=TRUE, REPORT=1)))
 print(summary(fit_cl))
 print(vcov(fit_cl))
 
@@ -379,22 +375,7 @@ continuousLogit.loglikelihood_midpoint<-function(t,a,b,c,d,e,ff,g,h,i,j,k){
 	
 	loglik <- sum(log(prob))
 	
-	#print(cbind(c("a","b","c","d","e","ff","g","h","i","j","k","loglik"),c(a,b,c,d,e,ff,g,h,i,j,k,loglik)))
 
-	
-	#print(loglik)
-	
-	# if (is.na(loglik)==TRUE) {
-		# loglik <- -1e21
-	# }
-	
-	# if (loglik == -Inf) {
-		# loglik <- -1e21
-	# }
-	
-	# if (loglik == Inf) {
-		# loglik <- -1e21
-	# }
 
 	
 	return(-loglik)
@@ -412,7 +393,7 @@ continuousLogit.density_midpoint<-function(t,a,b,c,d,e,ff,g,h,i,j,k){
 	i.expV_t<-expV_t(t,1:nobs)
 	
 	V_ti <- mat.or.vec(nobs, nalt) #systematic utilities for Choice Model
-	V_ti <- a + b*60*networktraveltime_mnl(base) + c*networktravelcost_mnl(base)+d*sin(base*2*pi/24)+e*sin(base*4*pi/24)+ff*sin(base*6*pi/24)+g*sin(base*8*pi/24)+h*cos(base*2*pi/24)+i*cos(base*4*pi/24)+j*cos(base*6*pi/24)+k*cos(base*8*pi/24) 		
+	V_ti <- a + b*60*networktraveltime_mnl(base) + c*networktravelcost_mnl(base)+d*sin(base*2*pi/24)+e*sin(base*4*pi/24)+ff*sin(base*6*pi/24)+g*sin(base*8*pi/24)+h*cos(base*2*pi/24)+i*cos(base*4*pi/24)+j*cos(base*6*pi/24)+k*cos(base*8*pi/24)+log(delta_t) 	 		
 
 	
 	continuouslogit.denom<-function(ID){
@@ -477,22 +458,14 @@ error_mcl_sample_midpoint<-function(a=0,c=0,t,b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.5
 	return(abs(continuousLogit.density(t,L,U,a,b,c,d,e,ff,g,h,i,j,k) - continuousLogit.density_midpoint(t,a,b,c,d,e,ff,g,h,i,j,k)))
 }
 
-curve(error_mcl_midpoint(t=x,L=0,U=24,a=0,b=-0.5,c=0,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34,ID=2), from=0, to=24,add=FALSE,xlab="t",ylab="Error",col="blue")
+curve(error_mcl_midpoint(t=x,L=0,U=24,a=0,b=-0.5,c=0,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34,ID=1), from=0, to=24,add=FALSE,xlab="t",ylab="Error",col="blue")
 
 
 continuousLogit.density_midpoint(a=0,c=0,t=df$choice,b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34)
 
 error_sample_midpoint<-error_mcl_sample_midpoint(a=0,c=0,t=df$choice,b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34)
+summary(error_sample_midpoint)
 
-#Possible visualization across observations
-  size=10000 
-  x<-rnorm(size) 
-  y<- runif(size)*x+runif(size) 
-
- x.breaks <- seq(min(x),max(x),length=50) 
-
- x.grps <- findInterval(x,x.breaks,all.inside=TRUE) 
- boxplot(y~x.grps) 
 
 #Simpson-based Continuous Logit
 continuousLogit.loglikelihood_simpson<-function(t,a,b,c,d,e,ff,g,h,i,j,k){
@@ -616,6 +589,51 @@ curve(error_mcl_simpson(t=x,L=0,U=24,a=0,b=-0.5,c=0,d=3.70,e=2.43,ff=2.46,g=0.55
 continuousLogit.density_simpson(a=0,c=0,t=df$choice,b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34)
 
 error_sample_simpson<-error_mcl_sample_simpson(a=0,c=0,t=df$choice,b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34)
+summary(error_sample_simpson)
+
+#Visualization errors
+
+#Points required
+t_grid <- seq(0,24,0.1)
+density_grid_simpson<-mat.or.vec(nobs,length(t_grid))
+for (i in 1:length(t_grid)){
+density_grid_simpson[,i] <- error_mcl_sample_simpson(a=0,c=0,t=t_grid[i],b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34)
+print(i)
+}
+
+boot.sci<-function(x,B){
+bootstrap <- NULL
+for(i in 1:B){
+bootstrap <-c(bootstrap,mean(sample(x,length(x),replace=T)))	
+}
+return(bootstrap)	
+}
+
+
+mean_density_grid_simpson<-mat.or.vec(length(t_grid),1)
+upper_quant_simpson<-mat.or.vec(length(t_grid),1)
+lower_quant_simpson<-mat.or.vec(length(t_grid),1)
+upper_quant_simpson_boot<-mat.or.vec(length(t_grid),1)
+lower_quant_simpson_boot<-mat.or.vec(length(t_grid),1)
+for (i in 1:length(t_grid)){
+mean_density_grid_simpson[i]<-mean(density_grid[,i])
+upper_quant_simpson_boot[i]<-quantile(boot.sci(density_grid[,i],1000),prob=c(0.025))
+lower_quant_simpson_boot[i]<-quantile(boot.sci(density_grid[,i],1000),prob=c(0.975))
+upper_quant_simpson[i]<-quantile(density_grid[,i],prob=c(0.025))
+lower_quant_simpson[i]<-quantile(density_grid[,i],1000,prob=c(0.975))
+}
+
+
+smoothingSpline_mean_simpson = smooth.spline(t_grid, mean_density_grid_simpson,spar=0.1)
+smoothingSpline_upper_simpson = smooth.spline(t_grid, upper_quant_simpson,spar=0.1)
+smoothingSpline_lower_simpson = smooth.spline(t_grid, lower_quant_simpson,spar=0.1)
+smoothingSpline_upper_simpson_boot = smooth.spline(t_grid, upper_quant_simpson_boot,spar=0.1)
+smoothingSpline_lower_simpson_boot = smooth.spline(t_grid, lower_quant_simpson_boot,spar=0.1)
+plot(t_grid, mean_density_grid_simpson,ylim=c(0,0.001),type="n",xlab="t",ylab="Error")
+lines(smoothingSpline_mean_simpson)
+lines(smoothingSpline_upper_simpson, lty=4, col="darkgrey")
+lines(smoothingSpline_lower_simpson, lty=4, col="darkgrey")
+legend("topright", c("Mean error","95% Bootstrapped CI"), lty=c(1,4),col=c("black","darkgrey"))
 
 #Discretized Multinomial Logit
 #Midpoint rule
