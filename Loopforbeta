@@ -1,0 +1,1005 @@
+
+#
+# Discretized Multinomial Logit vs. Continuous Logit
+#
+# Approximation error vs. Sampling error
+#
+
+
+#Define Dataframe
+nobs<-1000
+df <- data.frame(ID=1:nobs, stringsAsFactors=FALSE)
+
+#OD distance is Gamma distributed
+dist <- rgamma(nobs,2,0.25)
+
+df$distance<-dist
+
+#OD Freeflow Speed is Discrete Uniform distributed
+fspeed <- sample(c(40,50,60,70,80,90),nobs,replace=T)
+
+df$ODfspeed<-fspeed
+
+#OD Peak Speed is Discrete Uniform distributed
+pspeed <- sample(c(15,20,25,30,35,40),nobs,replace=T)
+
+df$ODpspeed<-pspeed
+
+#Delay
+delay <- 1 - (pspeed/fspeed)
+
+df$delay<-delay
+
+#Discretized Multinomial Logit
+#Function defining travel speed function, use similar formula from paper: Time of Day Modeling in a Tour-Based Context: The Tel-Aviv Experience 
+defineTravelTimeMatrix <- function(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19){
+  fTime <- function(x){
+    #        a*x^4+b*x^3+c*x^2+d*x+e
+    resu = matrix(0,nrow(x),ncol(x))
+    delay<-df$delay
+    distance<-df$distance
+    fspeed<-df$ODfspeed
+    for (i in 1:nrow(x)){
+      for (j in 1:ncol(x)){
+        resu[i,j]=distance[i]/(fspeed[i]*exp(a1+a2*log(distance[i])+a3*delay[i]+a4*delay[i]*exp(sin(x[i,j]*2*pi/24))+a5*delay[i]*exp((sin(x[i,j]*2*pi/24)))^2+a6*delay[i]*exp((sin(x[i,j]*2*pi/24)))^3+a7*delay[i]*exp((sin(x[i,j]*2*pi/24)))^4
+                                             + a8*delay[i]*exp(cos(x[i,j]*2*pi/24))+a9*delay[i]*exp((cos(x[i,j]*2*pi/24)))^2+a10*delay[i]*exp((cos(x[i,j]*2*pi/24)))^3+a11*delay[i]*exp((cos(x[i,j]*2*pi/24)))^4
+                                             +a12*delay[i]*exp(sin(x[i,j]*4*pi/24))+a13*delay[i]*exp((sin(x[i,j]*4*pi/24)))^2+a14*delay[i]*exp((sin(x[i,j]*4*pi/24)))^3+a15*delay[i]*exp((sin(x[i,j]*4*pi/24)))^4
+                                             + a16*delay[i]*exp(cos(x[i,j]*4*pi/24))+a17*delay[i]*exp((cos(x[i,j]*4*pi/24)))^2+a18*delay[i]*exp((cos(x[i,j]*4*pi/24)))^3+a19*delay[i]*exp((cos(x[i,j]*4*pi/24)))^4))
+      }
+    }
+    resu #+ matrix(runif(nrow(x)*ncol(x),min = 0,max = 1),nrow(x),ncol(x))
+  }
+  fTime
+}
+
+defineTravelCostMatrix <- function(a1,a2){
+  fCost <- function(x){
+    #        a*x^4+b*x^3+c*x^2+d*x+e
+    resu = matrix(0,nrow(x),ncol(x))
+    for (i in 1:nrow(x)){
+      for (j in 1:ncol(x)){   
+        resu[i,j] <- 0
+        if (x[i,j] > 5 & x[i,j] < 10) {
+          resu[i,j] <- a1
+        } else if ( x[i,j] > 15 & x[i,j] < 22) {
+          resu[i,j] <- a2
+        }    
+        
+        
+      }
+    }
+    resu #+ matrix(runif(nrow(x)*ncol(x),min = 0,max = 1),nrow(x),ncol(x))
+  }
+  fCost
+}
+
+
+#Continuous Logit
+#Function defining travel speed function, use similar formula from paper: Time of Day Modeling in a Tour-Based Context: The Tel-Aviv Experience 
+defineTravelTimeFunction<- function(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19){
+  fTime <- function(x, id){
+    #        a*x^4+b*x^3+c*x^2+d*x+e
+    re <- x
+    delay<-df$delay[id]
+    distance<-df$distance[id]
+    fspeed<-df$ODfspeed[id]
+    for (i in 1:length(x)){
+      re[i]=distance/(fspeed*exp(a1+a2*log(distance)+a3*delay+a4*delay*exp(sin(x[i]*2*pi/24))+a5*delay*exp((sin(x[i]*2*pi/24)))^2+a6*delay*exp((sin(x[i]*2*pi/24)))^3+a7*delay*exp((sin(x[i]*2*pi/24)))^4
+                                 + a8*delay*exp(cos(x[i]*2*pi/24))+a9*delay*exp((cos(x[i]*2*pi/24)))^2+a10*delay*exp((cos(x[i]*2*pi/24)))^3+a11*delay*exp((cos(x[i]*2*pi/24)))^4
+                                 +a12*delay*exp(sin(x[i]*4*pi/24))+a13*delay*exp((sin(x[i]*4*pi/24)))^2+a14*delay*exp((sin(x[i]*4*pi/24)))^3+a15*delay*exp((sin(x[i]*4*pi/24)))^4
+                                 + a16*delay*exp(cos(x[i]*4*pi/24))+a17*delay*exp((cos(x[i]*4*pi/24)))^2+a18*delay*exp((cos(x[i]*4*pi/24)))^3+a19*delay*exp((cos(x[i]*4*pi/24)))^4))
+    }
+    re
+  }
+  fTime
+}
+
+
+#Step function
+defineTravelCostFunction<- function(a1,a2){
+  fCost <- function(x, id){
+    #        a*x^4+b*x^3+c*x^2+d*x+e
+    re <- x
+    for (i in 1:length(x)){
+      re[i] <- 0
+      if (x[i] > 5 & x[i] < 10) {
+        re[i] <- a1
+      } else if ( x[i] > 15 & x[i] < 22) {
+        re[i] <- a2
+      }
+      
+    }
+    re
+  }
+  fCost
+}
+
+
+
+
+
+#timeInterval represents the time interval we want to have (unit: min). For example, if timeInterval = 60, we have 1hour time interval, then we have 24 alternatives
+timeInterval = 60
+nalt= 1440/timeInterval
+#base is the alternative matrix, nrow = nobs, ncol = nalt, for each row, change from 1/nalt to 24, representing nalt alternatives
+#Midpoint rule
+base = (t(matrix(1:nalt, nalt, nobs))-0.5)/(60/timeInterval)
+
+#Length of interval
+delta_t<-1/(60/timeInterval)
+
+#Trapezoidal rule and/or Simpson rule
+left = (t(matrix(1:nalt, nalt, nobs))-1)/(60/timeInterval)
+right = (t(matrix(1:nalt, nalt, nobs)))/(60/timeInterval)
+
+#Assume function for travel time and TTR
+networktraveltime_mnl <- defineTravelTimeMatrix(0.0317,0.0072,-1.4865,-11.2967,12.5130,-5.6582,0.9182,7.0780,-5.6571,1.8769,-0.2359,-1.9606,1.7074,-0.5433,0.0630,2.3598,-0.7701,0.1102,0.0018)
+networktraveltime_cl<-defineTravelTimeFunction(0.0317,0.0072,-1.4865,-11.2967,12.5130,-5.6582,0.9182,7.0780,-5.6571,1.8769,-0.2359,-1.9606,1.7074,-0.5433,0.0630,2.3598,-0.7701,0.1102,0.0018)
+networktravelcost_mnl<-defineTravelCostMatrix(1,2)
+networktravelcost_cl<-defineTravelCostFunction(1,2)
+networktravelcost_cl(3,1)
+networktravelcost_mnl(base)
+
+curve(networktraveltime_cl(x,100),from=0,to=24)#x<-matrix(c(c(0:24),c(0,rep(0,24))),nrow=2,ncol=25,byrow=T)
+
+#Continuous Logit - True Model
+library(stats4)
+
+#For Plotting and Simulation
+continuousLogit.density_plot<-function(t,L,U,ID,a,b,c,d,e,ff,g,h,i,j,k) {
+  
+  exp.V_t <- function(t,ID){
+    V_t <- a + b*60*networktraveltime_cl(t,ID)+c*networktravelcost_cl(t,ID)+d*sin(t*2*pi/24)+e*sin(t*4*pi/24)+ff*sin(t*6*pi/24)+g*sin(t*8*pi/24)+h*cos(t*2*pi/24)+i*cos(t*4*pi/24)+j*cos(t*6*pi/24)+k*cos(t*8*pi/24)
+    return(exp(V_t))	
+  }
+  
+  continuouslogit.denom<-function(ID){
+    denom_integral <- integrate(exp.V_t,lower=L,upper=U,ID=ID,rel.tol=1e-12)
+    #print(paste("Absolute Error of Denominator Integral of ",toString(ID)," is ",toString(denom_integral $abs.error)))
+    return(denom_integral$value)
+  }
+  
+  
+  prob<-exp.V_t(t,ID)/continuouslogit.denom(ID)
+  return(prob)
+}
+
+continuousLogit.density_simulate<-function(t,L,U,ID,a,b,c,d,e,ff,g,h,i,j,k) {
+  
+  exp.V_t <- function(t,ID){
+    V_t <- a + b*60*networktraveltime_cl(t,ID)+c*networktravelcost_cl(t,ID)+d*sin(t*2*pi/24)+e*sin(t*4*pi/24)+ff*sin(t*6*pi/24)+g*sin(t*8*pi/24)+h*cos(t*2*pi/24)+i*cos(t*4*pi/24)+j*cos(t*6*pi/24)+k*cos(t*8*pi/24)
+    return(exp(V_t))	
+  }
+  
+  continuouslogit.denom<-function(ID){
+    denom_integral <- integrate(exp.V_t,lower=L,upper=U,ID=ID,rel.tol=1e-10)
+    #print(paste("Absolute Error of Denominator Integral of ",toString(ID)," is ",toString(denom_integral $abs.error)))
+    return(denom_integral$value)
+  }
+  
+  
+  prob<-exp.V_t(t,ID)/continuouslogit.denom(ID)
+  return(prob)
+}
+
+
+
+continuousLogit.cdf_plot<-function(t,L,U,a,b,c,d,e,ff,g,h,i,j,k,ID) {
+  prob<-NULL
+  for (i in 1:length(t)) {
+    prob<-c(prob,integrate(continuousLogit.density_plot,lower=L,upper=t[i],L=L,U=U,a=a,b=b,c=c,d=d,e=e,ff=ff,g=g,h=h,i=i,j=j,k=k,ID=ID)$value)
+  }
+  return(prob)
+}
+
+
+candidate.density<-function(x) {
+  return(rep(1,length(x)))
+}
+
+curve(continuousLogit.density_plot(t=x,L=0,U=24,a=0,b=-0.5,c=0,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34,ID=1), from=0, to=24,add=FALSE,xlab="t",ylab="Density")
+curve(candidate.density(x), from=1, to=3,add=FALSE,xlab="t",ylab="Density")
+curve(continuousLogit.cdf_plot(t =x,L=0,U=24,a=0,b=-0.5,c=0,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34,ID=1), from=0,to=24,add=FALSE,xlab="t",ylab="Probability")
+
+#For Estimation
+
+continuousLogit.loglikelihood<-function(t,L,U,a,b,c,d,e,ff,g,h,i,j,k){
+  
+  exp.V_t <- function(t,ID){
+    V_t <- a + b*60*networktraveltime_cl(t,ID)+c*networktravelcost_cl(t,ID)+d*sin(t*2*pi/24)+e*sin(t*4*pi/24)+ff*sin(t*6*pi/24)+g*sin(t*8*pi/24)+h*cos(t*2*pi/24)+i*cos(t*4*pi/24)+j*cos(t*6*pi/24)+k*cos(t*8*pi/24)
+    return(exp(V_t))	
+  }
+  
+  expV_t<-Vectorize(exp.V_t)
+  i.expV_t<-expV_t(t,1:nobs)
+  
+  continuouslogit.denom<-function(ID){
+    return(integrate(exp.V_t,lower=L,upper=U,ID=ID)$value)
+  }
+  
+  denom<-Vectorize(continuouslogit.denom)
+  i.denom<-denom(1:nobs)
+  
+  prob<-i.expV_t/i.denom
+  
+  #print(cbind(c("a","b","c","d","e","ff","g","h","i","j","k","loglik"),c(a,b,c,d,e,ff,g,h,i,j,k,-sum(log(prob)))))
+  
+  return(-sum(log(prob)))
+  
+}
+
+
+continuousLogit.density<-function(t,L,U,a,b,c,d,e,ff,g,h,i,j,k){
+  
+  exp.V_t <- function(t,ID){
+    V_t <- a + b*60*networktraveltime_cl(t,ID)+c*networktravelcost_cl(t,ID)+d*sin(t*2*pi/24)+e*sin(t*4*pi/24)+ff*sin(t*6*pi/24)+g*sin(t*8*pi/24)+h*cos(t*2*pi/24)+i*cos(t*4*pi/24)+j*cos(t*6*pi/24)+k*cos(t*8*pi/24)
+    return(exp(V_t))	
+  }
+  
+  expV_t<-Vectorize(exp.V_t)
+  i.expV_t<-expV_t(t,1:nobs)
+  
+  continuouslogit.denom<-function(ID){
+    denom_integral <- integrate(exp.V_t,lower=L,upper=U,ID=ID,rel.tol=1e-12)
+    #print(paste("Absolute Error of Denominator Integral of ",toString(ID)," is ",toString(denom_integral $abs.error)))
+    return(denom_integral$value)
+  }
+  
+  denom<-Vectorize(continuouslogit.denom)
+  i.denom<-denom(1:nobs)
+  
+  prob<-i.expV_t/i.denom
+  return(prob)
+  
+}
+
+
+continuousLogit.cdf<-function(lower_lim,upper_lim,L,U,a,b,c,d,e,ff,g,h,i,j,k) {
+  
+  exp.V_t <- function(t,ID){
+    V_t <- a + b*60*networktraveltime_cl(t,ID)+c*networktravelcost_cl(t,ID)+d*sin(t*2*pi/24)+e*sin(t*4*pi/24)+ff*sin(t*6*pi/24)+g*sin(t*8*pi/24)+h*cos(t*2*pi/24)+i*cos(t*4*pi/24)+j*cos(t*6*pi/24)+k*cos(t*8*pi/24)
+    return(exp(V_t))	
+  }
+  
+  continuouslogit.denom<-function(ID){
+    denom_integral <- integrate(exp.V_t,lower=L,upper=U,ID=ID,rel.tol=1e-10)
+    #print(paste("Absolute Error of Denominator Integral of ",toString(ID)," is ",toString(denom_integral $abs.error)))
+    return(denom_integral$value)
+  }
+  
+  denom<-Vectorize(continuouslogit.denom)
+  i.denom<-denom(1:nobs)
+  
+  #print(i.denom)
+  
+  density.integrate<-function(ID,lowerLimit,upperLimit){
+    dens_integral <- integrate(exp.V_t,lower= lowerLimit,upper= upperLimit,ID=ID,rel.tol=1e-10)
+    #print(paste("Absolute Error of Density Integral of ",toString(ID)," is ",toString(dens_integral$abs.error)))
+    return(dens_integral$value)
+  }
+  
+  density_integrate<-Vectorize(density.integrate)
+  i.density<-density_integrate(1:nobs, lower_lim, upper_lim)
+  
+  #print(i.density)
+  
+  prob<-i.density/i.denom
+  return(prob)	
+  
+}
+
+
+
+
+#Acceptance-Rejection -- Simulation
+simulate_continuouslogit<-function(M){
+  
+  candidate.density<-function(x) {
+    if (x>=0 && x<=24) {
+      1
+    } else 0
+  }
+  
+  draws<- c()
+  
+  for (i in 1:nobs) {
+    
+    n.draws<-0
+    print(i)
+    while (n.draws < 1) {
+      
+      x.c <- runif(1,0,24)
+      accept.prob <- continuousLogit.density_simulate(x.c,L=0,U=24,a=0,b=-0.5,c=0,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34,ID=i)/(M*candidate.density(x.c))
+      #accept.prob <- continuousLogit.density_plot(x.c,L=0,U=24,a=0,b=0,c=0,d=3.70,e=0,ff=0,g=0,h=0,i=0,j=0,k=0,ID=i)/(M*candidate.density(x.c))
+      u<-runif(1,0,1)
+      if (u <= accept.prob) {
+        draws <- c(draws, x.c)
+        n.draws<-n.draws+1
+      }	
+    }
+    
+  }
+  
+  return(draws)
+}
+
+#Continuous Logit
+df$choice<-simulate_continuouslogit(1)
+
+print(fit_cl<-mle(continuousLogit.loglikelihood, start=list(b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34), fixed=list(a=0,c=0,L=0,U=24,t=df$choice), method="L-BFGS-B",lower=rep(-6,9),upper=rep(6,9),control=list(trace=TRUE, REPORT=1)))
+#print(fit_cl<-mle(continuousLogit.loglikelihood, start=list(d=3.70), fixed=list(b=0,a=0,c=0,L=0,U=24,t=df$choice,e=0,ff=0,g=0,i=0,j=0,k=0,h=0), method="L-BFGS-B",lower=rep(-5,9),upper=rep(5,9),control=list(trace=TRUE, REPORT=1)))
+print(summary(fit_cl))
+print(vcov(fit_cl))
+
+continuousLogit.loglikelihood(a=0,c=0,L=0,U=24,t=df$choice,b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34)
+
+
+#Convert observed continuous choices to discretisized alternative choices
+pos_alt<-NULL
+choice_mnl<-NULL
+for (i in 1:nobs){
+  pos_alt[i] <- sum(as.numeric(df$choice[i] > base[1,]))
+  
+  if (df$choice[i] <= (pos_alt[i])/(60/timeInterval)){
+    if (pos_alt[i]==0){pos_alt[i]<-1}
+    choice_mnl[i]<-base[1, pos_alt[i]]
+  } else {
+    choice_mnl[i]<-base[1,pos_alt[i]+1]
+  }
+}
+df$choice_mnl<-choice_mnl
+
+#Midpoint-based Continuous Logit
+continuousLogit.loglikelihood_midpoint<-function(t,a,b,c,d,e,ff,g,h,i,j,k){
+  
+  exp.V_t <- function(t,ID){
+    V_t <- a + b*60*networktraveltime_cl(t,ID)+c*networktravelcost_cl(t,ID)+d*sin(t*2*pi/24)+e*sin(t*4*pi/24)+ff*sin(t*6*pi/24)+g*sin(t*8*pi/24)+h*cos(t*2*pi/24)+i*cos(t*4*pi/24)+j*cos(t*6*pi/24)+k*cos(t*8*pi/24)
+    return(exp(V_t))	
+  }
+  
+  expV_t<-Vectorize(exp.V_t)
+  i.expV_t<-expV_t(t,1:nobs)
+  
+  V_ti <- mat.or.vec(nobs, nalt) #systematic utilities for Choice Model
+  V_ti <- a + b*60*networktraveltime_mnl(base) + c*networktravelcost_mnl(base)+d*sin(base*2*pi/24)+e*sin(base*4*pi/24)+ff*sin(base*6*pi/24)+g*sin(base*8*pi/24)+h*cos(base*2*pi/24)+i*cos(base*4*pi/24)+j*cos(base*6*pi/24)+k*cos(base*8*pi/24) 		
+  
+  
+  continuouslogit.denom<-function(ID){
+    return(sum(exp(V_ti[ID,])))
+  }
+  
+  denom<-Vectorize(continuouslogit.denom)
+  i.denom<-denom(1:nobs)
+  
+  prob<-i.expV_t/i.denom
+  
+  
+  loglik <- sum(log(prob))
+  
+  
+  
+  
+  return(-loglik)
+  
+}
+
+continuousLogit.density_midpoint<-function(t,a,b,c,d,e,ff,g,h,i,j,k){
+  
+  exp.V_t <- function(t,ID){
+    V_t <- a + b*60*networktraveltime_cl(t,ID)+c*networktravelcost_cl(t,ID)+d*sin(t*2*pi/24)+e*sin(t*4*pi/24)+ff*sin(t*6*pi/24)+g*sin(t*8*pi/24)+h*cos(t*2*pi/24)+i*cos(t*4*pi/24)+j*cos(t*6*pi/24)+k*cos(t*8*pi/24)
+    return(exp(V_t))	
+  }
+  
+  expV_t<-Vectorize(exp.V_t)
+  i.expV_t<-expV_t(t,1:nobs)
+  
+  V_ti <- mat.or.vec(nobs, nalt) #systematic utilities for Choice Model
+  V_ti <- a + b*60*networktraveltime_mnl(base) + c*networktravelcost_mnl(base)+d*sin(base*2*pi/24)+e*sin(base*4*pi/24)+ff*sin(base*6*pi/24)+g*sin(base*8*pi/24)+h*cos(base*2*pi/24)+i*cos(base*4*pi/24)+j*cos(base*6*pi/24)+k*cos(base*8*pi/24)+log(delta_t) 	 		
+  
+  
+  continuouslogit.denom<-function(ID){
+    return(sum(exp(V_ti[ID,])))
+  }
+  
+  denom<-Vectorize(continuouslogit.denom)
+  i.denom<-denom(1:nobs)
+  
+  prob<-i.expV_t/i.denom
+  
+  return(prob)
+  
+}
+
+continuousLogit.density_plot_midpoint<-function(t,ID,a,b,c,d,e,ff,g,h,i,j,k) {
+  
+  exp.V_t <- function(t,ID){
+    V_t <- a + b*60*networktraveltime_cl(t,ID)+c*networktravelcost_cl(t,ID)+d*sin(t*2*pi/24)+e*sin(t*4*pi/24)+ff*sin(t*6*pi/24)+g*sin(t*8*pi/24)+h*cos(t*2*pi/24)+i*cos(t*4*pi/24)+j*cos(t*6*pi/24)+k*cos(t*8*pi/24)
+    return(exp(V_t))	
+  }
+  
+  V_ti <- mat.or.vec(nobs, nalt) #systematic utilities for Choice Model
+  V_ti <- a + b*60*networktraveltime_mnl(base) + c*networktravelcost_mnl(base)+d*sin(base*2*pi/24)+e*sin(base*4*pi/24)+ff*sin(base*6*pi/24)+g*sin(base*8*pi/24)+h*cos(base*2*pi/24)+i*cos(base*4*pi/24)+j*cos(base*6*pi/24)+k*cos(base*8*pi/24)+log(delta_t) 		
+  
+  continuouslogit.denom<-function(ID){
+    return(sum(exp(V_ti[ID,])))
+  }
+  
+  prob<-exp.V_t(t,ID)/continuouslogit.denom(ID)
+  return(prob)
+}
+
+
+continuousLogit.cdf_plot_midpoint<-function(t,L,a,b,c,d,e,ff,g,h,i,j,k,ID) {
+  prob<-NULL
+  for (i in 1:length(t)) {
+    prob<-c(prob,integrate(continuousLogit.density_plot_midpoint,lower=L,upper=t[i],a=a,b=b,c=c,d=d,e=e,ff=ff,g=g,h=h,i=i,j=j,k=k,ID=ID)$value)
+  }
+  return(prob)
+}
+
+
+curve(continuousLogit.density_plot_midpoint(t=x,a=0,b=-0.5,c=0,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34,ID=2), from=0, to=24,add=FALSE,xlab="t",ylab="Density",col="green")
+curve(continuousLogit.density_plot(t=x,L=0,U=24,a=0,b=-0.5,c=0,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34,ID=2), from=0, to=24,add=TRUE,xlab="t",ylab="Density",col="blue")
+curve(continuousLogit.cdf_plot_midpoint(t =x,L=0,a=0,b=-0.5,c=0,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34,ID=1), from=0,to=24,add=FALSE,xlab="t",ylab="Probability")
+
+#print(fit_mcl<-mle(continuousLogit.loglikelihood_midpoint, start=list(b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34), fixed=list(a=0,c=0,t=df$choice), method="L-BFGS-B",lower=rep(-10,9),upper=rep(10,9),control=list(trace=TRUE, REPORT=1)))
+print(fit_mcl<-mle(continuousLogit.loglikelihood_midpoint, start=list(b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34), fixed=list(a=0,c=0,t=df$choice), method="BFGS",control=list(trace=TRUE, REPORT=1)))
+
+print(summary(fit_mcl))
+print(vcov(fit_mcl))
+
+continuousLogit.loglikelihood_midpoint(a=0,c=0,t=df$choice,b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34)
+
+#error function
+error_mcl_midpoint<-function(a=0,c=0,t,b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34,ID,L=0,U=24){
+  return(abs(continuousLogit.density_plot(t,L,U,ID,a,b,c,d,e,ff,g,h,i,j,k) - continuousLogit.density_plot_midpoint(t,ID,a,b,c,d,e,ff,g,h,i,j,k)))
+}
+
+error_mcl_sample_midpoint<-function(a=0,c=0,t,b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34,ID,L=0,U=24){
+  return(abs(continuousLogit.density(t,L,U,a,b,c,d,e,ff,g,h,i,j,k) - continuousLogit.density_midpoint(t,a,b,c,d,e,ff,g,h,i,j,k)))
+}
+
+curve(error_mcl_midpoint(t=x,L=0,U=24,a=0,b=-0.5,c=0,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34,ID=1), from=0, to=24,add=FALSE,xlab="t",ylab="Error",col="blue")
+
+
+continuousLogit.density_midpoint(a=0,c=0,t=df$choice,b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34)
+
+error_sample_midpoint<-error_mcl_sample_midpoint(a=0,c=0,t=df$choice,b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34)
+summary(error_sample_midpoint)
+
+
+#Visualization errors
+
+#Points required
+t_grid <- seq(0,24,0.1)
+density_grid_midpoint<-mat.or.vec(nobs,length(t_grid))
+for (i in 1:length(t_grid)){
+  density_grid_midpoint[,i] <- error_mcl_sample_midpoint(a=0,c=0,t=t_grid[i],b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34)
+  print(i)
+}
+
+boot.sci<-function(x,B){
+  bootstrap <- NULL
+  for(i in 1:B){
+    bootstrap <-c(bootstrap,mean(sample(x,length(x),replace=T)))	
+  }
+  return(bootstrap)	
+}
+
+mean_density_grid_midpoint<-mat.or.vec(length(t_grid),1)
+median_density_grid_midpoint<-mat.or.vec(length(t_grid),1)
+upper_quant_midpoint<-mat.or.vec(length(t_grid),1)
+lower_quant_midpoint<-mat.or.vec(length(t_grid),1)
+upper_quant_midpoint_boot<-mat.or.vec(length(t_grid),1)
+lower_quant_midpoint_boot<-mat.or.vec(length(t_grid),1)
+for (i in 1:length(t_grid)){
+  mean_density_grid_midpoint[i]<-mean(density_grid_midpoint[,i])
+  median_density_grid_midpoint[i]<-quantile(density_grid_midpoint[,i],prob=c(0.5))
+  upper_quant_midpoint_boot[i]<-quantile(boot.sci(density_grid_midpoint[,i],1000),prob=c(0.025))
+  lower_quant_midpoint_boot[i]<-quantile(boot.sci(density_grid_midpoint[,i],1000),prob=c(0.975))
+  upper_quant_midpoint[i]<-quantile(density_grid_midpoint[,i],prob=c(0.025))
+  lower_quant_midpoint[i]<-quantile(density_grid_midpoint[,i],1000,prob=c(0.975))
+}
+
+
+smoothingSpline_mean_midpoint = smooth.spline(t_grid, mean_density_grid_midpoint,spar=0.1)
+smoothingSpline_median_midpoint = smooth.spline(t_grid, median_density_grid_midpoint,spar=0.1)
+smoothingSpline_upper_midpoint = smooth.spline(t_grid, upper_quant_midpoint,spar=0.1)
+smoothingSpline_lower_midpoint = smooth.spline(t_grid, lower_quant_midpoint,spar=0.1)
+smoothingSpline_upper_midpoint_boot = smooth.spline(t_grid, upper_quant_midpoint_boot,spar=0.1)
+smoothingSpline_lower_midpoint_boot = smooth.spline(t_grid, lower_quant_midpoint_boot,spar=0.1)
+plot(t_grid, mean_density_grid_midpoint,ylim=c(0,0.001),type="n",xlab="t",ylab="Error")
+lines(smoothingSpline_mean_midpoint)
+lines(smoothingSpline_upper_midpoint_boot, lty=4, col="darkgrey")
+lines(smoothingSpline_lower_midpoint_boot, lty=4, col="darkgrey")
+legend("topright", c("Mean error","95% Bootstrapped CI"), lty=c(1,4),col=c("black","darkgrey"))
+
+#Simpson-based Continuous Logit
+continuousLogit.loglikelihood_simpson<-function(t,a,b,c,d,e,ff,g,h,i,j,k){
+  
+  exp.V_t <- function(t,ID){
+    V_t <- a + b*60*networktraveltime_cl(t,ID)+c*networktravelcost_cl(t,ID)+d*sin(t*2*pi/24)+e*sin(t*4*pi/24)+ff*sin(t*6*pi/24)+g*sin(t*8*pi/24)+h*cos(t*2*pi/24)+i*cos(t*4*pi/24)+j*cos(t*6*pi/24)+k*cos(t*8*pi/24)
+    return(exp(V_t))	
+  }
+  
+  expV_t<-Vectorize(exp.V_t)
+  i.expV_t<-expV_t(t,1:nobs)
+  
+  V_ti_left <- a + b*60*networktraveltime_mnl(left) + c*networktravelcost_mnl(left)+d*sin(left*2*pi/24)+e*sin(left*4*pi/24)+ff*sin(left*6*pi/24)+g*sin(left*8*pi/24)+h*cos(left*2*pi/24)+i*cos(left*4*pi/24)+j*cos(left*6*pi/24)+k*cos(left*8*pi/24) + log(delta_t/6)
+  
+  V_ti_mid <- a + b*60*networktraveltime_mnl(base) + c*networktravelcost_mnl(base)+d*sin(base*2*pi/24)+e*sin(base*4*pi/24)+ff*sin(base*6*pi/24)+g*sin(base*8*pi/24)+h*cos(base*2*pi/24)+i*cos(base*4*pi/24)+j*cos(base*6*pi/24)+k*cos(base*8*pi/24) + log(delta_t/6)
+  
+  V_ti_right <- a + b*60*networktraveltime_mnl(right) + c*networktravelcost_mnl(right)+d*sin(right*2*pi/24)+e*sin(right*4*pi/24)+ff*sin(right*6*pi/24)+g*sin(right*8*pi/24)+h*cos(right*2*pi/24)+i*cos(right*4*pi/24)+j*cos(right*6*pi/24)+k*cos(right*8*pi/24) + log(delta_t/6)
+  
+  continuouslogit.denom<-function(ID){
+    return(sum(exp(V_ti_left[ID,])+4*exp(V_ti_mid[ID,])+exp(V_ti_right[ID,])))
+  }
+  
+  denom<-Vectorize(continuouslogit.denom)
+  i.denom<-denom(1:nobs)
+  
+  prob<-i.expV_t/i.denom
+  
+  
+  loglik <- sum(log(prob))
+  
+  
+  return(-loglik)
+  
+}
+
+continuousLogit.density_simpson<-function(t,a,b,c,d,e,ff,g,h,i,j,k){
+  
+  exp.V_t <- function(t,ID){
+    V_t <- a + b*60*networktraveltime_cl(t,ID)+c*networktravelcost_cl(t,ID)+d*sin(t*2*pi/24)+e*sin(t*4*pi/24)+ff*sin(t*6*pi/24)+g*sin(t*8*pi/24)+h*cos(t*2*pi/24)+i*cos(t*4*pi/24)+j*cos(t*6*pi/24)+k*cos(t*8*pi/24)
+    return(exp(V_t))	
+  }
+  
+  expV_t<-Vectorize(exp.V_t)
+  i.expV_t<-expV_t(t,1:nobs)
+  
+  V_ti_left <- a + b*60*networktraveltime_mnl(left) + c*networktravelcost_mnl(left)+d*sin(left*2*pi/24)+e*sin(left*4*pi/24)+ff*sin(left*6*pi/24)+g*sin(left*8*pi/24)+h*cos(left*2*pi/24)+i*cos(left*4*pi/24)+j*cos(left*6*pi/24)+k*cos(left*8*pi/24) + log(delta_t/6)
+  
+  V_ti_mid <- a + b*60*networktraveltime_mnl(base) + c*networktravelcost_mnl(base)+d*sin(base*2*pi/24)+e*sin(base*4*pi/24)+ff*sin(base*6*pi/24)+g*sin(base*8*pi/24)+h*cos(base*2*pi/24)+i*cos(base*4*pi/24)+j*cos(base*6*pi/24)+k*cos(base*8*pi/24) + log(delta_t/6)
+  
+  V_ti_right <- a + b*60*networktraveltime_mnl(right) + c*networktravelcost_mnl(right)+d*sin(right*2*pi/24)+e*sin(right*4*pi/24)+ff*sin(right*6*pi/24)+g*sin(right*8*pi/24)+h*cos(right*2*pi/24)+i*cos(right*4*pi/24)+j*cos(right*6*pi/24)+k*cos(right*8*pi/24) + log(delta_t/6)
+  
+  continuouslogit.denom<-function(ID){
+    return(sum(exp(V_ti_left[ID,])+4*exp(V_ti_mid[ID,])+exp(V_ti_right[ID,])))
+  }
+  
+  denom<-Vectorize(continuouslogit.denom)
+  i.denom<-denom(1:nobs)
+  
+  prob<-i.expV_t/i.denom
+  
+  return(prob)
+  
+}
+
+continuousLogit.density_plot_simpson<-function(t,ID,a,b,c,d,e,ff,g,h,i,j,k) {
+  
+  exp.V_t <- function(t,ID){
+    V_t <- a + b*60*networktraveltime_cl(t,ID)+c*networktravelcost_cl(t,ID)+d*sin(t*2*pi/24)+e*sin(t*4*pi/24)+ff*sin(t*6*pi/24)+g*sin(t*8*pi/24)+h*cos(t*2*pi/24)+i*cos(t*4*pi/24)+j*cos(t*6*pi/24)+k*cos(t*8*pi/24)
+    return(exp(V_t))	
+  }
+  
+  
+  V_ti_left <- a + b*60*networktraveltime_mnl(left) + c*networktravelcost_mnl(left)+d*sin(left*2*pi/24)+e*sin(left*4*pi/24)+ff*sin(left*6*pi/24)+g*sin(left*8*pi/24)+h*cos(left*2*pi/24)+i*cos(left*4*pi/24)+j*cos(left*6*pi/24)+k*cos(left*8*pi/24) + log(delta_t/6)
+  
+  V_ti_mid <- a + b*60*networktraveltime_mnl(base) + c*networktravelcost_mnl(base)+d*sin(base*2*pi/24)+e*sin(base*4*pi/24)+ff*sin(base*6*pi/24)+g*sin(base*8*pi/24)+h*cos(base*2*pi/24)+i*cos(base*4*pi/24)+j*cos(base*6*pi/24)+k*cos(base*8*pi/24) + log(delta_t/6)
+  
+  V_ti_right <- a + b*60*networktraveltime_mnl(right) + c*networktravelcost_mnl(right)+d*sin(right*2*pi/24)+e*sin(right*4*pi/24)+ff*sin(right*6*pi/24)+g*sin(right*8*pi/24)+h*cos(right*2*pi/24)+i*cos(right*4*pi/24)+j*cos(right*6*pi/24)+k*cos(right*8*pi/24) + log(delta_t/6)	
+  
+  continuouslogit.denom<-function(ID){
+    return(sum(exp(V_ti_left[ID,])+4*exp(V_ti_mid[ID,])+exp(V_ti_right[ID,])))
+  }
+  
+  
+  prob<-exp.V_t(t,ID)/continuouslogit.denom(ID)
+  return(prob)
+}
+
+
+continuousLogit.cdf_plot_simpson<-function(t,L,a,b,c,d,e,ff,g,h,i,j,k,ID) {
+  prob<-NULL
+  for (i in 1:length(t)) {
+    prob<-c(prob,integrate(continuousLogit.density_plot_simpson,lower=L,upper=t[i],a=a,b=b,c=c,d=d,e=e,ff=ff,g=g,h=h,i=i,j=j,k=k,ID=ID)$value)
+  }
+  return(prob)
+}
+
+
+curve(continuousLogit.density_plot_simpson(t=x,a=0,b=-0.5,c=0,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34,ID=2), from=0, to=24,add=FALSE,xlab="t",ylab="Density",col="green")
+curve(continuousLogit.density_plot(t=x,L=0,U=24,a=0,b=-0.5,c=0,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34,ID=2), from=0, to=24,add=TRUE,xlab="t",ylab="Density",col="blue")
+curve(continuousLogit.cdf_plot_midpoint(t =x,L=0,a=0,b=-0.5,c=0,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34,ID=1), from=0,to=24,add=FALSE,xlab="t",ylab="Probability")
+
+#print(fit_mcl<-mle(continuousLogit.loglikelihood_midpoint, start=list(b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34), fixed=list(a=0,c=0,t=df$choice), method="L-BFGS-B",lower=rep(-10,9),upper=rep(10,9),control=list(trace=TRUE, REPORT=1)))
+print(fit_scl<-mle(continuousLogit.loglikelihood_simpson, start=list(b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34), fixed=list(a=0,c=0,t=df$choice), method="BFGS",control=list(trace=TRUE, REPORT=1)))
+print(summary(fit_scl))
+print(vcov(fit_scl))
+
+continuousLogit.loglikelihood_simpson(a=0,c=0,t=df$choice,b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34)
+
+#error function
+error_mcl_simpson<-function(a=0,c=0,t,b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34,ID,L=0,U=24){
+  return(abs(continuousLogit.density_plot(t,L,U,ID,a,b,c,d,e,ff,g,h,i,j,k) - continuousLogit.density_plot_simpson(t,ID,a,b,c,d,e,ff,g,h,i,j,k)))
+}
+
+error_mcl_sample_simpson<-function(a=0,c=0,t,b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34,ID,L=0,U=24){
+  return(abs(continuousLogit.density(t,L,U,a,b,c,d,e,ff,g,h,i,j,k) - continuousLogit.density_simpson(t,a,b,c,d,e,ff,g,h,i,j,k)))
+}
+
+curve(error_mcl_simpson(t=x,L=0,U=24,a=0,b=-0.5,c=0,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34,ID=2), from=0, to=24,add=FALSE,xlab="t",ylab="Error",col="blue")
+
+
+continuousLogit.density_simpson(a=0,c=0,t=df$choice,b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34)
+
+error_sample_simpson<-error_mcl_sample_simpson(a=0,c=0,t=df$choice,b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34)
+summary(error_sample_simpson)
+
+#Visualization errors
+
+#Points required
+t_grid <- seq(0,24,0.1)
+density_grid_simpson<-mat.or.vec(nobs,length(t_grid))
+for (i in 1:length(t_grid)){
+  density_grid_simpson[,i] <- error_mcl_sample_simpson(a=0,c=0,t=t_grid[i],b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34)
+  print(i)
+}
+
+boot.sci<-function(x,B){
+  bootstrap <- NULL
+  for(i in 1:B){
+    bootstrap <-c(bootstrap,mean(sample(x,length(x),replace=T)))	
+  }
+  return(bootstrap)	
+}
+
+
+mean_density_grid_simpson<-mat.or.vec(length(t_grid),1)
+median_density_grid_simpson<-mat.or.vec(length(t_grid),1)
+upper_quant_simpson<-mat.or.vec(length(t_grid),1)
+lower_quant_simpson<-mat.or.vec(length(t_grid),1)
+upper_quant_simpson_boot<-mat.or.vec(length(t_grid),1)
+lower_quant_simpson_boot<-mat.or.vec(length(t_grid),1)
+for (i in 1:length(t_grid)){
+  mean_density_grid_simpson[i]<-mean(density_grid_simpson[,i])
+  median_density_grid_simpson[i]<-quantile(density_grid_simpson[,i],prob=c(0.5))
+  upper_quant_simpson_boot[i]<-quantile(boot.sci(density_grid_simpson[,i],1000),prob=c(0.025))
+  lower_quant_simpson_boot[i]<-quantile(boot.sci(density_grid_simpson[,i],1000),prob=c(0.975))
+  upper_quant_simpson[i]<-quantile(density_grid_simpson[,i],prob=c(0.025))
+  lower_quant_simpson[i]<-quantile(density_grid_simpson[,i],1000,prob=c(0.975))
+}
+
+
+smoothingSpline_mean_simpson = smooth.spline(t_grid, mean_density_grid_simpson,spar=0.1)
+smoothingSpline_median_simpson = smooth.spline(t_grid, median_density_grid_simpson,spar=0.1)
+smoothingSpline_upper_simpson = smooth.spline(t_grid, upper_quant_simpson,spar=0.1)
+smoothingSpline_lower_simpson = smooth.spline(t_grid, lower_quant_simpson,spar=0.1)
+smoothingSpline_upper_simpson_boot = smooth.spline(t_grid, upper_quant_simpson_boot,spar=0.1)
+smoothingSpline_lower_simpson_boot = smooth.spline(t_grid, lower_quant_simpson_boot,spar=0.1)
+plot(t_grid, mean_density_grid_simpson,ylim=c(0,0.001),type="n",xlab="t",ylab="Error")
+lines(smoothingSpline_mean_simpson)
+lines(smoothingSpline_upper_simpson_boot, lty=4, col="darkgrey")
+lines(smoothingSpline_lower_simpson_boot, lty=4, col="darkgrey")
+legend("topright", c("Mean error","95% Bootstrapped CI"), lty=c(1,4),col=c("black","darkgrey"))
+
+#Discretized Multinomial Logit
+#Midpoint rule
+multinomialLogit.loglikelihood_midpoint<-function(a,b,c,d,e,ff,g,h,i,j,k){
+  #Define Choice Probability - Multinomial Logit
+  ChoiceProb<-function(chosenV,sysV){
+    return(exp(chosenV)/rowSums(exp(sysV)))
+  }
+  
+  #Define Systematic Utilities for Discretisize MNL
+  V_ti <- mat.or.vec(nobs, nalt) #systematic utilities for Choice Model
+  V_chosen <- mat.or.vec(nobs, nalt) # Chosen systematic utility for Choice Model
+  
+  V_ti <- a + b*60*networktraveltime_mnl(base) + c*networktravelcost_mnl(base)+d*sin(base*2*pi/24)+e*sin(base*4*pi/24)+ff*sin(base*6*pi/24)+g*sin(base*8*pi/24)+h*cos(base*2*pi/24)+i*cos(base*4*pi/24)+j*cos(base*6*pi/24)+k*cos(base*8*pi/24) 
+  
+  for (i in 1:nobs){
+    V_chosen[i,] <- as.numeric(df$choice_mnl[i] == base[i,])*V_ti[i,]
+  }
+  
+  V_chosen <- rowSums(V_chosen)
+  
+  prob<-mat.or.vec(nobs,1)
+  
+  prob<-ChoiceProb(V_chosen,V_ti)
+  
+  return(-sum(log(prob)))
+  
+}
+
+
+
+#print(fit_mnl<-mle(multinomialLogit.loglikelihood_midpoint, start=list(b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34), fixed=list(a=0,c=0), method="L-BFGS-B",lower=rep(-10,9),upper=rep(10,9),control=list(trace=TRUE, REPORT=1)))
+print(fit_mnl_mid<-mle(multinomialLogit.loglikelihood_midpoint, start=list(b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34), fixed=list(a=0,c=0), method="BFGS",control=list(trace=TRUE, REPORT=1)))
+print(summary(fit_mnl_mid))
+print(vcov(fit_mnl_mid))
+
+#Midpoint rule
+multinomialLogit.probability_midpoint<-function(a,b,c,d,e,ff,g,h,i,j,k){
+  
+  #Define Systematic Utilities for Discretisize MNL
+  V_ti <- mat.or.vec(nobs, nalt) #systematic utilities for Choice Model
+  
+  V_ti <- a + b*60*networktraveltime_mnl(base) + c*networktravelcost_mnl(base)+d*sin(base*2*pi/24)+e*sin(base*4*pi/24)+ff*sin(base*6*pi/24)+g*sin(base*8*pi/24)+h*cos(base*2*pi/24)+i*cos(base*4*pi/24)+j*cos(base*6*pi/24)+k*cos(base*8*pi/24) 
+  
+  prob<-mat.or.vec(nobs, nalt)
+  
+  
+  prob<-exp(V_ti)/rowSums(exp(V_ti))
+  
+  
+  return(prob)
+  
+}
+
+
+prob_mnl_midpoint<-multinomialLogit.probability_midpoint(a=0,b=-0.5,c=0,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34)
+delta_t<-1/(60/timeInterval)
+
+plot(prob_mnl_midpoint[1,],col="blue")
+curve(continuousLogit.density_plot(t=x,L=0,U=24,a=0,b=-0.5,c=0,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34,ID=1), from=0, to=24,add=TRUE,xlab="t",ylab="Density",col="green")
+
+
+prob_cl<-mat.or.vec(nobs,nalt)
+#Calculate Continuous Logit Probability for each discretized alternative
+for (i in 1:nalt){
+  upper<-i/(60/timeInterval)
+  prob_cl[,i]<-continuousLogit.cdf(lower_lim=upper-delta_t,upper_lim=upper,L=0,U=24,a=0,b=-0.5,c=0,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34)
+  print(i)
+}
+
+#Calculate Error for every alternative
+error_midpoint<-mat.or.vec(nobs,nalt)
+error_midpoint<-abs(prob_mnl_midpoint-prob_cl)
+
+boxplot(error_midpoint)
+
+#Trapezoid rule
+multinomialLogit.loglikelihood_trapezoid<-function(a,b,c,d,e,ff,g,h,i,j,k){
+  #Define Choice Probability - Multinomial Logit
+  ChoiceProb<-function(chosenV,sysV_left,sysV_right){
+    return(chosenV/rowSums(0.5*(exp(sysV_left)+exp(sysV_right))))
+  }
+  
+  #Define Systematic Utilities for Discretisize MNL
+  V_chosen <- mat.or.vec(nobs, nalt) # Chosen systematic utility for Choice Model
+  
+  V_ti_left <- a + b*60*networktraveltime_mnl(left) + c*networktravelcost_mnl(left)+d*sin(left*2*pi/24)+e*sin(left*4*pi/24)+ff*sin(left*6*pi/24)+g*sin(left*8*pi/24)+h*cos(left*2*pi/24)+i*cos(left*4*pi/24)+j*cos(left*6*pi/24)+k*cos(left*8*pi/24) 
+  
+  V_ti_right <- a + b*60*networktraveltime_mnl(right) + c*networktravelcost_mnl(right)+d*sin(right*2*pi/24)+e*sin(right*4*pi/24)+ff*sin(right*6*pi/24)+g*sin(right*8*pi/24)+h*cos(right*2*pi/24)+i*cos(right*4*pi/24)+j*cos(right*6*pi/24)+k*cos(right*8*pi/24) 
+  
+  for (i in 1:nobs){
+    V_chosen[i,] <- as.numeric(df$choice_mnl[i] == base[i,])*(exp(V_ti_left[i,])+ exp(V_ti_right[i,]))*0.5
+  }
+  
+  V_chosen <- rowSums(V_chosen)
+  
+  prob<-mat.or.vec(nobs,1)
+  
+  prob<-ChoiceProb(V_chosen, V_ti_left, V_ti_right)
+  
+  return(-sum(log(prob)))
+  
+}
+
+
+
+#print(fit_mnl<-mle(multinomialLogit.loglikelihood_trapezoid, start=list(b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34), fixed=list(a=0,c=0), method="L-BFGS-B",lower=rep(-10,9),upper=rep(10,9),control=list(trace=TRUE, REPORT=1)))
+print(fit_mnl_trap<-mle(multinomialLogit.loglikelihood_trapezoid, start=list(b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34), fixed=list(a=0,c=0), method="BFGS",control=list(trace=TRUE, REPORT=1)))
+print(summary(fit_mnl_trap))
+print(vcov(fit_mnl_trap))
+
+#Trapezoid rule
+multinomialLogit.probability_trapezoid<-function(a,b,c,d,e,ff,g,h,i,j,k){
+  
+  #Define Systematic Utilities for Discretisize MNL
+  
+  V_ti_left <- a + b*60*networktraveltime_mnl(left) + c*networktravelcost_mnl(left)+d*sin(left*2*pi/24)+e*sin(left*4*pi/24)+ff*sin(left*6*pi/24)+g*sin(left*8*pi/24)+h*cos(left*2*pi/24)+i*cos(left*4*pi/24)+j*cos(left*6*pi/24)+k*cos(left*8*pi/24) 
+  
+  V_ti_right <- a + b*60*networktraveltime_mnl(right) + c*networktravelcost_mnl(right)+d*sin(right*2*pi/24)+e*sin(right*4*pi/24)+ff*sin(right*6*pi/24)+g*sin(right*8*pi/24)+h*cos(right*2*pi/24)+i*cos(right*4*pi/24)+j*cos(right*6*pi/24)+k*cos(right*8*pi/24) 
+  
+  prob<-mat.or.vec(nobs, nalt)
+  
+  
+  prob<-((exp(V_ti_left)+ exp(V_ti_right))*0.5)/rowSums(0.5*(exp(V_ti_left)+exp(V_ti_right)))
+  
+  
+  return(prob)
+  
+}
+
+
+prob_mnl_trapezoid<-multinomialLogit.probability_trapezoid(a=0,b=-0.5,c=0,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34)
+delta_t<-1/(60/timeInterval)
+
+plot(prob_mnl_trapezoid[1,],col="blue",ylim=c(0,0.45))
+curve(continuousLogit.density_plot(t=x,L=0,U=24,a=0,b=-0.5,c=0,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34,ID=1), from=0, to=24,add=TRUE,xlab="t",ylab="Density",col="green")
+
+
+prob_cl<-mat.or.vec(nobs,nalt)
+#Calculate Continuous Logit Probability for each discretized alternative
+for (i in 1:nalt){
+  upper<-i/(60/timeInterval)
+  prob_cl[,i]<-continuousLogit.cdf(lower_lim=upper-delta_t,upper_lim=upper,L=0,U=24,a=0,b=-0.5,c=0,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34)
+  print(i)
+}
+
+#Calculate Error for every alternative
+error_trapezoid<-mat.or.vec(nobs,nalt)
+error_trapezoid <-abs(prob_mnl_trapezoid-prob_cl)
+boxplot(error_trapezoid)
+
+#Simpson's rule
+multinomialLogit.loglikelihood_simpson<-function(a,b,c,d,e,ff,g,h,i,j,k){
+  #Define Choice Probability - Multinomial Logit
+  ChoiceProb<-function(chosenV,sysV_left, sysV_mid, sysV_right){
+    return(chosenV/rowSums((exp(sysV_left)+4*exp(sysV_mid)+exp(sysV_right))))
+  }
+  
+  #Define Systematic Utilities for Discretisize MNL
+  V_chosen <- mat.or.vec(nobs, nalt) # Chosen systematic utility for Choice Model
+  
+  V_ti_left <- a + b*60*networktraveltime_mnl(left) + c*networktravelcost_mnl(left)+d*sin(left*2*pi/24)+e*sin(left*4*pi/24)+ff*sin(left*6*pi/24)+g*sin(left*8*pi/24)+h*cos(left*2*pi/24)+i*cos(left*4*pi/24)+j*cos(left*6*pi/24)+k*cos(left*8*pi/24) 
+  
+  V_ti_mid <- a + b*60*networktraveltime_mnl(base) + c*networktravelcost_mnl(base)+d*sin(base*2*pi/24)+e*sin(base*4*pi/24)+ff*sin(base*6*pi/24)+g*sin(base*8*pi/24)+h*cos(base*2*pi/24)+i*cos(base*4*pi/24)+j*cos(base*6*pi/24)+k*cos(base*8*pi/24) 
+  
+  
+  V_ti_right <- a + b*60*networktraveltime_mnl(right) + c*networktravelcost_mnl(right)+d*sin(right*2*pi/24)+e*sin(right*4*pi/24)+ff*sin(right*6*pi/24)+g*sin(right*8*pi/24)+h*cos(right*2*pi/24)+i*cos(right*4*pi/24)+j*cos(right*6*pi/24)+k*cos(right*8*pi/24) 
+  
+  for (i in 1:nobs){
+    V_chosen[i,] <- as.numeric(df$choice_mnl[i] == base[i,])*(exp(V_ti_left[i,])+4*exp(V_ti_mid[i,])+exp(V_ti_right[i,]))
+  }
+  
+  V_chosen <- rowSums(V_chosen)
+  
+  prob<-mat.or.vec(nobs,1)
+  
+  prob<-ChoiceProb(V_chosen, V_ti_left, V_ti_mid, V_ti_right)
+  
+  return(-sum(log(prob)))
+  
+}
+
+
+
+#print(fit_mnl_simpson<-mle(multinomialLogit.loglikelihood_simpson, start=list(b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34), fixed=list(a=0,c=0), method="L-BFGS-B",lower=rep(-10,9),upper=rep(10,9),control=list(trace=TRUE, REPORT=1)))
+print(fit_mnl_simpson<-mle(multinomialLogit.loglikelihood_simpson, start=list(b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34), fixed=list(a=0,c=0), method="BFGS",control=list(trace=TRUE, REPORT=1)))
+print(summary(fit_mnl_simpson))
+print(vcov(fit_mnl_simpson))
+
+#Simpson rule
+multinomialLogit.probability_simpson<-function(a,b,c,d,e,ff,g,h,i,j,k){
+  
+  #Define Systematic Utilities for Discretisize MNL
+  
+  V_ti_left <- a + b*60*networktraveltime_mnl(left) + c*networktravelcost_mnl(left)+d*sin(left*2*pi/24)+e*sin(left*4*pi/24)+ff*sin(left*6*pi/24)+g*sin(left*8*pi/24)+h*cos(left*2*pi/24)+i*cos(left*4*pi/24)+j*cos(left*6*pi/24)+k*cos(left*8*pi/24) 
+  
+  V_ti_mid <- a + b*60*networktraveltime_mnl(base) + c*networktravelcost_mnl(base)+d*sin(base*2*pi/24)+e*sin(base*4*pi/24)+ff*sin(base*6*pi/24)+g*sin(base*8*pi/24)+h*cos(base*2*pi/24)+i*cos(base*4*pi/24)+j*cos(base*6*pi/24)+k*cos(base*8*pi/24) 
+  
+  V_ti_right <- a + b*60*networktraveltime_mnl(right) + c*networktravelcost_mnl(right)+d*sin(right*2*pi/24)+e*sin(right*4*pi/24)+ff*sin(right*6*pi/24)+g*sin(right*8*pi/24)+h*cos(right*2*pi/24)+i*cos(right*4*pi/24)+j*cos(right*6*pi/24)+k*cos(right*8*pi/24) 
+  
+  prob<-mat.or.vec(nobs, nalt)
+  
+  
+  prob<-((exp(V_ti_left)+4*exp(V_ti_mid)+exp(V_ti_right))/rowSums((exp(V_ti_left)+4*exp(V_ti_mid)+exp(V_ti_right))))
+  
+  
+  return(prob)
+  
+}
+
+
+prob_mnl_simpson<-multinomialLogit.probability_simpson(a=0,b=-0.5,c=0,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34)
+delta_t<-1/(60/timeInterval)
+
+plot(prob_mnl_simpson[1,],col="blue",ylim=c(0,0.45))
+curve(continuousLogit.density_plot(t=x,L=0,U=24,a=0,b=-0.5,c=0,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34,ID=1), from=0, to=24,add=TRUE,xlab="t",ylab="Density",col="green")
+
+
+prob_cl<-mat.or.vec(nobs,nalt)
+#Calculate Continuous Logit Probability for each discretized alternative
+for (i in 1:nalt){
+  upper<-i/(60/timeInterval)
+  prob_cl[,i]<-continuousLogit.cdf(lower_lim=upper-delta_t,upper_lim=upper,L=0,U=24,a=0,b=-0.5,c=0,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34)
+  print(i)
+}
+
+#Calculate Error for every alternative
+error_simpson<-mat.or.vec(nobs,nalt)
+error_simpson <-abs(prob_mnl_simpson-prob_cl)
+boxplot(error_simpson)
+
+#Generate multiple data sets and estimate vector of betas
+
+nsims<-3 #number of data sets simulations
+
+
+beta_vec<-mat.or.vec(nsims,length(coef(fit_mnl_mid)))
+for (nobs in c(100, 500, 1000)){
+for(timeinterval in c(60,30,15)){
+  for (k in 1:nsims) {
+  
+  
+  df <- data.frame(ID=1:nobs, stringsAsFactors=FALSE)
+  
+  #OD distance is Gamma distributed
+  dist <- rgamma(nobs,2,0.25)
+  
+  df$distance<-dist
+  
+  #OD Freeflow Speed is Discrete Uniform distributed
+  fspeed <- sample(c(40,50,60,70,80,90),nobs,replace=T)
+  
+  df$ODfspeed<-fspeed
+  
+  #OD Peak Speed is Discrete Uniform distributed
+  pspeed <- sample(c(15,20,25,30,35,40),nobs,replace=T)
+  
+  df$ODpspeed<-pspeed
+  
+  #Delay
+  delay <- 1 - (pspeed/fspeed)
+  
+  df$delay<-delay
+  
+  df$choice<-simulate_continuouslogit(0.3)
+  
+  
+  #timeInterval represents the time interval we want to have (unit: min). For example, if timeInterval = 60, we have 1hour time interval, then we have 24 alternatives
+  timeInterval = 60
+  nalt= 1440/timeInterval
+  #base is the alternative matrix, nrow = nobs, ncol = nalt, for each row, change from 1/nalt to 24, representing nalt alternatives
+  base = (t(matrix(1:nalt, nalt, nobs))-0.5)/(60/timeInterval)
+  
+  
+  #Assume function for travel time and TTR
+  networktraveltime_mnl <- defineTravelTimeMatrix(0.0317,0.0072,-1.4865,-11.2967,12.5130,-5.6582,0.9182,7.0780,-5.6571,1.8769,-0.2359,-1.9606,1.7074,-0.5433,0.0630,2.3598,-0.7701,0.1102,0.0018)
+  networktraveltime_cl<-defineTravelTimeFunction(0.0317,0.0072,-1.4865,-11.2967,12.5130,-5.6582,0.9182,7.0780,-5.6571,1.8769,-0.2359,-1.9606,1.7074,-0.5433,0.0630,2.3598,-0.7701,0.1102,0.0018)
+  networktravelcost_mnl<-defineTravelCostMatrix(1,2)
+  networktravelcost_cl<-defineTravelCostFunction(1,2)
+  traveltime_mnl<-networktraveltime_mnl(base)
+  traveltime_cl<-networktraveltime_cl(0:1)
+  networktravelcost_cl(3,1)
+  networktravelcost_mnl(base)
+  
+  
+  #Discretized Multinomial Logit
+  
+  #Convert observed choices to MNL alternative choices
+  pos_alt<-NULL
+  choice_mnl<-NULL
+  for (i in 1:nobs){
+    pos_alt[i] <- sum(as.numeric(df$choice[i] > base[1,]))
+    
+    if (df$choice[i] <= (pos_alt[i])/(60/timeInterval)){
+      if (pos_alt[i]==0){pos_alt[i]<-1}
+      choice_mnl[i]<-base[1, pos_alt[i]]
+    } else {
+      choice_mnl[i]<-base[1,pos_alt[i]+1]
+    }
+  }
+  df$choice_mnl<-choice_mnl
+  
+  print(fit_mnl<-mle(multinomialLogit.loglikelihood_midpoint, start=list(b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34), fixed=list(a=0,c=0), method="L-BFGS-B",lower=rep(-5,9),upper=rep(5,9),control=list(trace=TRUE, REPORT=1)))
+  #print(summary(fit_mnl))
+  #print(vcov(fit_mnl))
+  
+  beta_vec[k,] <- coef(fit_mnl)
+  beta_vec.DF= data.frame(beta_vec)
+  write.table(beta_vec.DF,paste("betas",nobs, timeinterval,".txt",sep="")
+  print(k)
+  
+}
+}
+}
+truevalues=c(a=0, b=-0.5,c=0, d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34)
+for (i in 1:ncol(beta_vec)){
+  plot(density(beta_vec[,i]),main=i)
+  abline(v=truevalues[i])
+}
