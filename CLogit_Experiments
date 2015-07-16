@@ -467,6 +467,52 @@ error_sample_midpoint<-error_mcl_sample_midpoint(a=0,c=0,t=df$choice,b=-0.5,d=3.
 summary(error_sample_midpoint)
 
 
+#Visualization errors
+
+#Points required
+t_grid <- seq(0,24,0.1)
+density_grid_midpoint<-mat.or.vec(nobs,length(t_grid))
+for (i in 1:length(t_grid)){
+density_grid_midpoint[,i] <- error_mcl_sample_midpoint(a=0,c=0,t=t_grid[i],b=-0.5,d=3.70,e=2.43,ff=2.46,g=0.55,h=-4.73,i=-0.51,j=2.40,k=1.34)
+print(i)
+}
+
+boot.sci<-function(x,B){
+bootstrap <- NULL
+for(i in 1:B){
+bootstrap <-c(bootstrap,mean(sample(x,length(x),replace=T)))	
+}
+return(bootstrap)	
+}
+
+mean_density_grid_midpoint<-mat.or.vec(length(t_grid),1)
+median_density_grid_midpoint<-mat.or.vec(length(t_grid),1)
+upper_quant_midpoint<-mat.or.vec(length(t_grid),1)
+lower_quant_midpoint<-mat.or.vec(length(t_grid),1)
+upper_quant_midpoint_boot<-mat.or.vec(length(t_grid),1)
+lower_quant_midpoint_boot<-mat.or.vec(length(t_grid),1)
+for (i in 1:length(t_grid)){
+mean_density_grid_midpoint[i]<-mean(density_grid_midpoint[,i])
+median_density_grid_midpoint[i]<-quantile(density_grid_midpoint[,i],prob=c(0.5))
+upper_quant_midpoint_boot[i]<-quantile(boot.sci(density_grid_midpoint[,i],1000),prob=c(0.025))
+lower_quant_midpoint_boot[i]<-quantile(boot.sci(density_grid_midpoint[,i],1000),prob=c(0.975))
+upper_quant_midpoint[i]<-quantile(density_grid_midpoint[,i],prob=c(0.025))
+lower_quant_midpoint[i]<-quantile(density_grid_midpoint[,i],1000,prob=c(0.975))
+}
+
+
+smoothingSpline_mean_midpoint = smooth.spline(t_grid, mean_density_grid_midpoint,spar=0.1)
+smoothingSpline_median_midpoint = smooth.spline(t_grid, median_density_grid_midpoint,spar=0.1)
+smoothingSpline_upper_midpoint = smooth.spline(t_grid, upper_quant_midpoint,spar=0.1)
+smoothingSpline_lower_midpoint = smooth.spline(t_grid, lower_quant_midpoint,spar=0.1)
+smoothingSpline_upper_midpoint_boot = smooth.spline(t_grid, upper_quant_midpoint_boot,spar=0.1)
+smoothingSpline_lower_midpoint_boot = smooth.spline(t_grid, lower_quant_midpoint_boot,spar=0.1)
+plot(t_grid, mean_density_grid_midpoint,ylim=c(0,0.001),type="n",xlab="t",ylab="Error")
+lines(smoothingSpline_mean_midpoint)
+lines(smoothingSpline_upper_midpoint_boot, lty=4, col="darkgrey")
+lines(smoothingSpline_lower_midpoint_boot, lty=4, col="darkgrey")
+legend("topright", c("Mean error","95% Bootstrapped CI"), lty=c(1,4),col=c("black","darkgrey"))
+
 #Simpson-based Continuous Logit
 continuousLogit.loglikelihood_simpson<-function(t,a,b,c,d,e,ff,g,h,i,j,k){
 	
@@ -611,28 +657,31 @@ return(bootstrap)
 
 
 mean_density_grid_simpson<-mat.or.vec(length(t_grid),1)
+median_density_grid_simpson<-mat.or.vec(length(t_grid),1)
 upper_quant_simpson<-mat.or.vec(length(t_grid),1)
 lower_quant_simpson<-mat.or.vec(length(t_grid),1)
 upper_quant_simpson_boot<-mat.or.vec(length(t_grid),1)
 lower_quant_simpson_boot<-mat.or.vec(length(t_grid),1)
 for (i in 1:length(t_grid)){
-mean_density_grid_simpson[i]<-mean(density_grid[,i])
-upper_quant_simpson_boot[i]<-quantile(boot.sci(density_grid[,i],1000),prob=c(0.025))
-lower_quant_simpson_boot[i]<-quantile(boot.sci(density_grid[,i],1000),prob=c(0.975))
-upper_quant_simpson[i]<-quantile(density_grid[,i],prob=c(0.025))
-lower_quant_simpson[i]<-quantile(density_grid[,i],1000,prob=c(0.975))
+mean_density_grid_simpson[i]<-mean(density_grid_simpson[,i])
+median_density_grid_simpson[i]<-quantile(density_grid_simpson[,i],prob=c(0.5))
+upper_quant_simpson_boot[i]<-quantile(boot.sci(density_grid_simpson[,i],1000),prob=c(0.025))
+lower_quant_simpson_boot[i]<-quantile(boot.sci(density_grid_simpson[,i],1000),prob=c(0.975))
+upper_quant_simpson[i]<-quantile(density_grid_simpson[,i],prob=c(0.025))
+lower_quant_simpson[i]<-quantile(density_grid_simpson[,i],1000,prob=c(0.975))
 }
 
 
 smoothingSpline_mean_simpson = smooth.spline(t_grid, mean_density_grid_simpson,spar=0.1)
+smoothingSpline_median_simpson = smooth.spline(t_grid, median_density_grid_simpson,spar=0.1)
 smoothingSpline_upper_simpson = smooth.spline(t_grid, upper_quant_simpson,spar=0.1)
 smoothingSpline_lower_simpson = smooth.spline(t_grid, lower_quant_simpson,spar=0.1)
 smoothingSpline_upper_simpson_boot = smooth.spline(t_grid, upper_quant_simpson_boot,spar=0.1)
 smoothingSpline_lower_simpson_boot = smooth.spline(t_grid, lower_quant_simpson_boot,spar=0.1)
 plot(t_grid, mean_density_grid_simpson,ylim=c(0,0.001),type="n",xlab="t",ylab="Error")
 lines(smoothingSpline_mean_simpson)
-lines(smoothingSpline_upper_simpson, lty=4, col="darkgrey")
-lines(smoothingSpline_lower_simpson, lty=4, col="darkgrey")
+lines(smoothingSpline_upper_simpson_boot, lty=4, col="darkgrey")
+lines(smoothingSpline_lower_simpson_boot, lty=4, col="darkgrey")
 legend("topright", c("Mean error","95% Bootstrapped CI"), lty=c(1,4),col=c("black","darkgrey"))
 
 #Discretized Multinomial Logit
