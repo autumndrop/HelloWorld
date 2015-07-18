@@ -308,7 +308,8 @@ iterationRun <- function(){
   for (nobs in c(100,500)){
     for(timeInterval in c(15,30,60)){
       for (k in 1:nsims) {
-        number = floor(runif(1, 1,101)) 
+      # number = floor(runif(1, 1,101)) 
+        number = Sys.getpid()
         name = paste(nobs,"obs", timeInterval,"min",k,"iter","random",number,sep="")
         #a = simulationRun(nobs,timeInterval,M,k)
         #beta_Matrix_midMNL[,name] <- a$mnl
@@ -318,7 +319,8 @@ iterationRun <- function(){
       }
     }
   }
-  number = floor(runif(1, 1,101)) 
+#  number = floor(runif(1, 1,101)) 
+  number = Sys.getpid()
   write.table(beta_Matrix_midMNL,paste("betas_Matrix_NOBS100A500_INTERVAL15_30_60","random",number,".txt",sep=""))
 #  write.table(beta_Matrix_midCL,paste("betas_Matrix","random",number,".txt",sep=""))
   beta_Matrix_midMNL
