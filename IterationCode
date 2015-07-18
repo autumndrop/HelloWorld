@@ -192,6 +192,7 @@ simulationRun <- function(nobs,timeInterval,M,k){
   #timeInterval represents the time interval we want to have (unit: min). For example, if timeInterval = 60, we have 1hour time interval, then we have 24 alternatives
   #timeInterval = 60
   nalt= 1440/timeInterval
+  delta_t<-1/(60/timeInterval)
   #base is the alternative matrix, nrow = nobs, ncol = nalt, for each row, change from 1/nalt to 24, representing nalt alternatives
   base = (t(matrix(1:nalt, nalt, nobs))-0.5)/(60/timeInterval)
   
@@ -224,6 +225,7 @@ simulationRun <- function(nobs,timeInterval,M,k){
   df$choice_mnl<-choice_mnl
   multinomialLogit.loglikelihood_midpoint<-function(a,b,c,d,e,ff,g,h,i,j,k,nobs,timeInterval){
     #Define Choice Probability - Multinomial Logit
+    delta_t<-1/(60/timeInterval)
     nalt= 1440/timeInterval
     base = (t(matrix(1:nalt, nalt, nobs))-0.5)/(60/timeInterval)
     ChoiceProb<-function(chosenV,sysV){
@@ -265,7 +267,7 @@ simulationRun <- function(nobs,timeInterval,M,k){
     i.expV_t<-expV_t(t,1:nobs)
     
     V_ti <- mat.or.vec(nobs, nalt) #systematic utilities for Choice Model
-    V_ti <- a + b*60*networktraveltime_mnl(base) + c*networktravelcost_mnl(base)+d*sin(base*2*pi/24)+e*sin(base*4*pi/24)+ff*sin(base*6*pi/24)+g*sin(base*8*pi/24)+h*cos(base*2*pi/24)+i*cos(base*4*pi/24)+j*cos(base*6*pi/24)+k*cos(base*8*pi/24) 		
+    V_ti <- a + b*60*networktraveltime_mnl(base) + c*networktravelcost_mnl(base)+d*sin(base*2*pi/24)+e*sin(base*4*pi/24)+ff*sin(base*6*pi/24)+g*sin(base*8*pi/24)+h*cos(base*2*pi/24)+i*cos(base*4*pi/24)+j*cos(base*6*pi/24)+k*cos(base*8*pi/24) + log(delta_t) 		
     
     
     continuouslogit.denom<-function(ID){
