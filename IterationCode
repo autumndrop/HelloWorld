@@ -300,7 +300,7 @@ simulationRun <- function(nobs,timeInterval,M,k){
 set.seed(8)
 iterationRun <- function(){
   library(stats4)
-  nsims<-1
+  nsims<-72
   M <- 0.3
   beta_Matrix_midMNL <- data.frame(beta = c("a","b","c","d","e","ff","g","h","i","j","k","nobs","timeInterval"))
 #  beta_Matrix_midCL <- data.frame(beta = c("a","b","c","d","e","ff","g","h","i","j","k","nobs","timeInterval"))
